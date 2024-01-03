@@ -200,6 +200,7 @@ CMakeFiles/ds.dir/src/main.cpp.o: ../src/main.cpp \
   /usr/include/c++/11/bits/fstream.tcc \
   /usr/include/c++/11/sstream \
   /usr/include/c++/11/bits/sstream.tcc \
+  ../src/tokenization.hpp \
   /usr/include/c++/11/optional \
   /usr/include/c++/11/utility \
   /usr/include/c++/11/bits/stl_relops.h \
@@ -208,7 +209,9 @@ CMakeFiles/ds.dir/src/main.cpp.o: ../src/main.cpp \
   /usr/include/c++/11/bits/stl_uninitialized.h \
   /usr/include/c++/11/bits/stl_vector.h \
   /usr/include/c++/11/bits/stl_bvector.h \
-  /usr/include/c++/11/bits/vector.tcc
+  /usr/include/c++/11/bits/vector.tcc \
+  ../src/parser.hpp \
+  ../src/generation.hpp
 
 
 /usr/include/c++/11/bits/stl_bvector.h:
@@ -224,6 +227,8 @@ CMakeFiles/ds.dir/src/main.cpp.o: ../src/main.cpp \
 /usr/include/c++/11/bits/vector.tcc:
 
 /usr/include/c++/11/optional:
+
+../src/tokenization.hpp:
 
 /usr/include/c++/11/sstream:
 
@@ -366,6 +371,8 @@ CMakeFiles/ds.dir/src/main.cpp.o: ../src/main.cpp \
 /usr/include/stdint.h:
 
 /usr/include/c++/11/bits/exception.h:
+
+../src/parser.hpp:
 
 /usr/include/x86_64-linux-gnu/bits/types/cookie_io_functions_t.h:
 
@@ -586,6 +593,8 @@ CMakeFiles/ds.dir/src/main.cpp.o: ../src/main.cpp \
 /usr/include/x86_64-linux-gnu/bits/types/clockid_t.h:
 
 /usr/include/x86_64-linux-gnu/bits/types/struct___jmp_buf_tag.h:
+
+../src/generation.hpp:
 
 /usr/include/x86_64-linux-gnu/bits/types/timer_t.h:
 

@@ -201,6 +201,7 @@ CMakeFiles/ds.dir/src/main.cpp.o
  /usr/include/c++/11/bits/fstream.tcc
  /usr/include/c++/11/sstream
  /usr/include/c++/11/bits/sstream.tcc
+ /home/ogmios/dev/dsharp/src/tokenization.hpp
  /usr/include/c++/11/optional
  /usr/include/c++/11/utility
  /usr/include/c++/11/bits/stl_relops.h
@@ -210,4 +211,6 @@ CMakeFiles/ds.dir/src/main.cpp.o
  /usr/include/c++/11/bits/stl_vector.h
  /usr/include/c++/11/bits/stl_bvector.h
  /usr/include/c++/11/bits/vector.tcc
+ /home/ogmios/dev/dsharp/src/parser.hpp
+ /home/ogmios/dev/dsharp/src/generation.hpp
 

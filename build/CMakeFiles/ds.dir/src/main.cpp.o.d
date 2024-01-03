@@ -159,10 +159,14 @@ CMakeFiles/ds.dir/src/main.cpp.o: /home/ogmios/dev/dsharp/src/main.cpp \
  /usr/include/x86_64-linux-gnu/c++/11/bits/basic_file.h \
  /usr/include/x86_64-linux-gnu/c++/11/bits/c++io.h \
  /usr/include/c++/11/bits/fstream.tcc /usr/include/c++/11/sstream \
- /usr/include/c++/11/bits/sstream.tcc /usr/include/c++/11/optional \
- /usr/include/c++/11/utility /usr/include/c++/11/bits/stl_relops.h \
+ /usr/include/c++/11/bits/sstream.tcc \
+ /home/ogmios/dev/dsharp/src/tokenization.hpp \
+ /usr/include/c++/11/optional /usr/include/c++/11/utility \
+ /usr/include/c++/11/bits/stl_relops.h \
  /usr/include/c++/11/bits/enable_special_members.h \
  /usr/include/c++/11/vector /usr/include/c++/11/bits/stl_uninitialized.h \
  /usr/include/c++/11/bits/stl_vector.h \
  /usr/include/c++/11/bits/stl_bvector.h \
- /usr/include/c++/11/bits/vector.tcc
+ /usr/include/c++/11/bits/vector.tcc \
+ /home/ogmios/dev/dsharp/src/parser.hpp \
+ /home/ogmios/dev/dsharp/src/generation.hpp
