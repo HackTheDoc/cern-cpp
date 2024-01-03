@@ -1,0 +1,1 @@
+/usr/bin/c++ CMakeFiles/ds.dir/src/main.cpp.o -o ds 
