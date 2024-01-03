@@ -8,7 +8,12 @@
 enum TokenType
 {
     RETURN,
-    INTEGER_LITERAL
+    INTEGER_LITERAL,
+    LET,
+    IDENTIFIER,
+    EQUAL,
+    LEFT_PARENTHESIS,
+    RIGHT_PARENTHESIS
 };
 
 struct Token
@@ -23,11 +28,11 @@ private:
     const std::string _src;
     size_t _index = 0;
 
-    std::optional<char> peek(int ahead = 1) const
+    std::optional<char> peek(int offset = 0) const
     {
-        if (_index + ahead > _src.length())
+        if (_index + offset >= _src.length())
             return {};
-        return _src[_index];
+        return _src[_index+offset];
     }
 
     char consume()
@@ -45,11 +50,7 @@ public:
 
         while (peek().has_value())
         {
-            if (std::isspace(peek().value()))
-            {
-                consume();
-            }
-            else if (std::isalpha(peek().value()))
+            if (std::isalpha(peek().value()))
             {
                 buf.push_back(consume());
                 while (peek().has_value() && std::isalnum(peek().value()))
@@ -58,15 +59,13 @@ public:
                 }
 
                 if (buf == "return")
-                {
                     tokens.push_back({.type = TokenType::RETURN});
-                    buf.clear();
-                }
+                else if (buf == "let")
+                    tokens.push_back({.type = TokenType::LET});
                 else
-                {
-                    std::cerr << "syntax error" << std::endl;
-                    exit(EXIT_FAILURE);
-                }
+                    tokens.push_back({.type = TokenType::IDENTIFIER, .val = buf});
+                    
+                buf.clear();
             }
             else if (std::isdigit(peek().value()))
             {
@@ -78,9 +77,27 @@ public:
                 tokens.push_back({.type = TokenType::INTEGER_LITERAL, .val = buf});
                 buf.clear();
             }
+            else if (peek().value() == '=') {
+                consume();
+                tokens.push_back({.type = TokenType::EQUAL});
+            }
+            else if (peek().value() == '(') {
+                consume();
+                tokens.push_back({.type = TokenType::LEFT_PARENTHESIS});
+            }
+            else if (peek().value() == ')') {
+                consume();
+                tokens.push_back({.type = TokenType::RIGHT_PARENTHESIS});
+            }
+            else if (std::isspace(peek().value())) {
+                consume();
+            }
+            else if (peek().value() == '\n') {
+                consume();
+            }
             else
-            {
-                std::cerr << "syntax error" << std::endl;
+            {   
+                std::cerr << "syntax error : " << peek().value() << std::endl;
                 exit(EXIT_FAILURE);
             }
         }

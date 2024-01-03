@@ -73,15 +73,15 @@ CMakeFiles/ds.dir/src/main.cpp.o: CMakeFiles/ds.dir/flags.make
 CMakeFiles/ds.dir/src/main.cpp.o: ../src/main.cpp
 CMakeFiles/ds.dir/src/main.cpp.o: CMakeFiles/ds.dir/compiler_depend.ts
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/ogmios/dev/dsharp/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object CMakeFiles/ds.dir/src/main.cpp.o"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/ds.dir/src/main.cpp.o -MF CMakeFiles/ds.dir/src/main.cpp.o.d -o CMakeFiles/ds.dir/src/main.cpp.o -c /home/ogmios/dev/dsharp/src/main.cpp
+	/usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/ds.dir/src/main.cpp.o -MF CMakeFiles/ds.dir/src/main.cpp.o.d -o CMakeFiles/ds.dir/src/main.cpp.o -c /home/ogmios/dev/dsharp/src/main.cpp
 
 CMakeFiles/ds.dir/src/main.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/ds.dir/src/main.cpp.i"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/ogmios/dev/dsharp/src/main.cpp > CMakeFiles/ds.dir/src/main.cpp.i
+	/usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/ogmios/dev/dsharp/src/main.cpp > CMakeFiles/ds.dir/src/main.cpp.i
 
 CMakeFiles/ds.dir/src/main.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/ds.dir/src/main.cpp.s"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/ogmios/dev/dsharp/src/main.cpp -o CMakeFiles/ds.dir/src/main.cpp.s
+	/usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/ogmios/dev/dsharp/src/main.cpp -o CMakeFiles/ds.dir/src/main.cpp.s
 
 # Object files for target ds
 ds_OBJECTS = \

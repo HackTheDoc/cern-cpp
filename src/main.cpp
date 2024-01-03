@@ -24,17 +24,17 @@ int main(int argc, char* argv[]) {
     std::vector<Token> tokens = tokenizer.tokenize();
 
     Parser parser(std::move(tokens));
-    std::optional<Node::Return> tree = parser.parse();
+    std::optional<Node::Prog> prog = parser.parse_prog();
 
-    if (!tree.has_value()) {
-        std::cerr << "no return statement found" << std::endl;
+    if (!prog.has_value()) {
+        std::cerr << "invalid program" << std::endl;
         exit(EXIT_FAILURE);
     }
 
-    Generator generator(tree.value());
+    Generator generator(prog.value());
     {
         std::ofstream outfile("out.asm");
-        outfile << generator.generate();
+        outfile << generator.generate_prog();
     }
 
     system("nasm -felf64 out.asm");
