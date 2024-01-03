@@ -2,19 +2,31 @@ $$
 
 \begin{align}
 
-[\text{prog}] &\to [\text{stmt}]^* \\
+    [\text{Prog}] &\to [\text{Stmt}]^* \\
 
-[\text{stmt}] &\to 
-\begin{cases}
-    \text{return [expr]} \\
-    \text{let identifier} = [\text{expr}]
-\end{cases} \\
+    [\text{Stmt}] &\to 
+    \begin{cases}
+        \text{return [Expr]} \\
+        \text{let identifier} = [\text{Expr}]
+    \end{cases} \\
 
-[\text{expr}] &\to 
-\begin{cases}
-    \text{integer\_literal} \\
-    \text{identifier}
-\end{cases} \\
+    [\text{Expr}] &\to 
+    \begin{cases}
+        \text{Term} \\
+        \text{BinExpr}
+    \end{cases} \\
+
+    [\text{BinaryExpr}] &\to
+    \begin{cases}
+        [\text{Expr}] * [\text{Expr}] & {prec} = 1\\
+        [\text{Expr}] + [\text{Expr}] & {prec} = 0\\
+    \end{cases} \\
+
+    [\text{Term}] &\to 
+    \begin{cases}
+        \text{integer\_literal} \\
+        \text{identifier}
+    \end{cases} \\
 
 \end{align}
 

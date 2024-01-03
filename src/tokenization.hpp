@@ -13,7 +13,9 @@ enum TokenType
     IDENTIFIER,
     EQUAL,
     LEFT_PARENTHESIS,
-    RIGHT_PARENTHESIS
+    RIGHT_PARENTHESIS,
+    PLUS,
+    STAR
 };
 
 struct Token
@@ -88,6 +90,14 @@ public:
             else if (peek().value() == ')') {
                 consume();
                 tokens.push_back({.type = TokenType::RIGHT_PARENTHESIS});
+            }
+            else if (peek().value() == '+') {
+                consume();
+                tokens.push_back({.type = TokenType::PLUS});
+            }
+            else if (peek().value() == '*') {
+                consume();
+                tokens.push_back({.type = TokenType::STAR});
             }
             else if (std::isspace(peek().value())) {
                 consume();

@@ -3,6 +3,8 @@
 #include <unordered_map>
 #include <sstream>
 
+#include <cassert>
+
 #include "parser.hpp"
 
 class Generator
@@ -12,85 +14,139 @@ private:
     std::stringstream _output;
     size_t _stack_size = 0;
 
-    struct Var {
+    struct Var
+    {
         size_t stack_loc;
     };
     std::unordered_map<std::string, Var> _vars{};
 
-    void push(const std::string& reg)
+    void push(const std::string &reg)
     {
         _output << "  push " << reg << "\n";
         _stack_size++;
     }
 
-    void pop(const std::string& reg)
+    void pop(const std::string &reg)
     {
         _output << "  pop " << reg << "\n";
         _stack_size--;
     }
 
 public:
-    Generator(const Node::Prog& prog) : _prog(std::move(prog)) {}
+    Generator(const Node::Prog &prog) : _prog(std::move(prog)) {}
 
-    void generate_expr(const Node::Expr& expr)
+    void generate_term(const Node::Term* term)
     {
-        struct ExprVisitor {
-            Generator* gen;
+        struct TermVisitor
+        {
+            Generator *gen;
 
-            void operator()(const Node::ExprIntegerLiteral& expr_int_lit) const
+            void operator()(const Node::TermIntegerLiteral *term_int_lit) const
             {
-                gen->_output << "  mov rax, " << expr_int_lit.int_lit.val.value() << "\n";
+                gen->_output << "  mov rax, " << term_int_lit->int_lit.val.value() << "\n";
                 gen->push("rax");
             }
 
-            void operator()(const Node::ExprIdentifier& expr_indent) const 
+            void operator()(const Node::TermIdentifier *term_ident) const
             {
-                if (!gen->_vars.contains(expr_indent.ident.val.value()))
+                if (!gen->_vars.contains(term_ident->ident.val.value()))
                 {
-                    std::cerr << "unknown variable '" << expr_indent.ident.val.value() << "'" << std::endl;
+                    std::cerr << "unknown variable '" << term_ident->ident.val.value() << "'" << std::endl;
                     exit(EXIT_FAILURE);
                 }
 
-                const auto& var = gen->_vars[expr_indent.ident.val.value()];
+                const auto &var = gen->_vars[term_ident->ident.val.value()];
                 std::stringstream offset;
                 offset << "QWORD [rsp + " << (gen->_stack_size - var.stack_loc) * 8 << "]\n";
                 gen->push(offset.str());
             }
         };
 
-        ExprVisitor visitor{.gen = this};
-        std::visit(visitor, expr.var);
+        TermVisitor visitor{.gen = this};
+        std::visit(visitor, term->var);
     }
 
-    void generate_stmt(const Node::Stmt& stmt)
+    void generate_bin_exp(const Node::BinExpr* bin_expr)
     {
-        struct StmtVisitor {
-            Generator* gen;
+        struct BinExprVisitor
+        {
+            Generator *gen;
 
-            void operator()(const Node::StmtReturn& stmt_return) const
+            void operator()(const Node::BinExprAdd *bin_expr_add) const
             {
-                gen->generate_expr(stmt_return.expr);
+                gen->generate_expr(bin_expr_add->lside);
+                gen->generate_expr(bin_expr_add->rside);
+                gen->pop("rbx");
+                gen->pop("rax");
+                gen->_output << "  add rax, rbx\n";
+                gen->push("rax");
+            }
+
+            void operator()(const Node::BinExprMulti *bin_expr_multi) const
+            {
+                gen->generate_expr(bin_expr_multi->lside);
+                gen->generate_expr(bin_expr_multi->rside);
+                gen->pop("rbx");
+                gen->pop("rax");
+                gen->_output << "  mul rbx\n";
+                gen->push("rax");
+            }
+        };
+
+        BinExprVisitor visitor{.gen = this};
+        std::visit(visitor, bin_expr->var);
+    }
+
+    void generate_expr(const Node::Expr *expr)
+    {
+        struct ExprVisitor
+        {
+            Generator *gen;
+
+            void operator()(const Node::Term *term) const
+            {
+                gen->generate_term(term);
+            }
+
+            void operator()(const Node::BinExpr *expr_bin) const
+            {
+                gen->generate_bin_exp(expr_bin);
+            }
+        };
+
+        ExprVisitor visitor{.gen = this};
+        std::visit(visitor, expr->var);
+    }
+
+    void generate_stmt(const Node::Stmt *stmt)
+    {
+        struct StmtVisitor
+        {
+            Generator *gen;
+
+            void operator()(const Node::StmtReturn *stmt_return) const
+            {
+                gen->generate_expr(stmt_return->expr);
                 gen->_output << "  mov rax, 60\n";
                 gen->pop("rdi");
                 gen->_output << "  syscall\n";
             }
 
-            void operator()(const Node::StmtLet& stmt_let) const
+            void operator()(const Node::StmtLet *stmt_let) const
             {
-                if (gen->_vars.contains(stmt_let.identifier.val.value()))
+                if (gen->_vars.contains(stmt_let->identifier.val.value()))
                 {
-                    std::cerr << "'" << stmt_let.identifier.val.value() << "' already used" << std::endl;
+                    std::cerr << "'" << stmt_let->identifier.val.value() << "' already used" << std::endl;
                     exit(EXIT_FAILURE);
                 }
 
-                gen->generate_expr(stmt_let.expr);
-                gen->_vars.insert({stmt_let.identifier.val.value(), Var{gen->_stack_size}});
-
+                gen->generate_expr(stmt_let->expr);
+                gen->_vars.insert({stmt_let->identifier.val.value(), Var{gen->_stack_size}});
             }
         };
 
         StmtVisitor visitor{.gen = this};
-        std::visit(visitor, stmt.var);
+        std::visit(visitor, stmt->var);
     }
 
     std::string generate_prog()
@@ -98,7 +154,7 @@ public:
         _output << "global _start\n";
         _output << "_start:\n";
 
-        for (const Node::Stmt& stmt : _prog.stmts)
+        for (const Node::Stmt *stmt : _prog.stmts)
             generate_stmt(stmt);
 
         // default exit

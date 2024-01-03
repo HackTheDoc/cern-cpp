@@ -2,8 +2,6 @@
 #include <fstream>
 #include <sstream>
 
-#include "tokenization.hpp"
-#include "parser.hpp"
 #include "generation.hpp"
 
 int main(int argc, char* argv[]) {
