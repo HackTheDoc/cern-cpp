@@ -17,9 +17,13 @@ enum TokenType
     INTEGER_LITERAL,
     LET,
     IDENTIFIER,
+    IF,
+
     EQUAL,
     LEFT_PARENTHESIS,
     RIGHT_PARENTHESIS,
+    LEFT_CURLY_BACKET,
+    RIGHT_CURLY_BRACKET,
     PLUS,
     MINUS,
     STAR,
@@ -75,7 +79,6 @@ public:
 
         while (peek().has_value())
         {
-            
             if (std::isalpha(peek().value()))
             {
                 buf.push_back(consume());
@@ -88,6 +91,8 @@ public:
                     tokens.push_back({.type = TokenType::RETURN});
                 else if (buf == "let")
                     tokens.push_back({.type = TokenType::LET});
+                else if (buf == "if")
+                    tokens.push_back({.type = TokenType::IF});
                 else
                     tokens.push_back({.type = TokenType::IDENTIFIER, .val = buf});
                     
@@ -114,6 +119,12 @@ public:
             else if (peek().value() == ')') {
                 consume();
                 tokens.push_back({.type = TokenType::RIGHT_PARENTHESIS});
+            }else if (peek().value() == '{') {
+                consume();
+                tokens.push_back({.type = TokenType::LEFT_CURLY_BACKET});
+            }else if (peek().value() == '}') {
+                consume();
+                tokens.push_back({.type = TokenType::RIGHT_CURLY_BRACKET});
             }
             else if (peek().value() == '+') {
                 consume();

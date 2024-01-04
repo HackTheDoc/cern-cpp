@@ -7,8 +7,11 @@ $$
     [\text{Stmt}] &\to 
     \begin{cases}
         \text{return [Expr]} \\
-        \text{let identifier} = [\text{Expr}]
+        \text{let identifier} = [\text{Expr}] \\
+        if\space([\text{Expr}])\space[\text{Scope}] \\
     \end{cases} \\
+
+    [\text{Scope}] &\to \{[\text{Stmt}]^*\} \\
 
     [\text{Expr}] &\to 
     \begin{cases}

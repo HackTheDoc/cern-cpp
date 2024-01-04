@@ -22,7 +22,7 @@ namespace Node
 
     struct TermParen
     {
-        Expr* expr;
+        Expr *expr;
     };
 
     struct Term
@@ -64,6 +64,13 @@ namespace Node
         std::variant<Term *, BinExpr *> var;
     };
 
+    struct Stmt;
+
+    struct Scope
+    {
+        std::vector<Stmt *> stmts;
+    };
+
     struct StmtReturn
     {
         Expr *expr;
@@ -75,9 +82,15 @@ namespace Node
         Expr *expr;
     };
 
+    struct StmtIf
+    {
+        Expr* expr;
+        Scope* scope;
+    };
+
     struct Stmt
     {
-        std::variant<StmtReturn *, StmtLet *> var;
+        std::variant<StmtReturn *, StmtLet *, Scope *, StmtIf *> var;
     };
 
     struct Prog
@@ -102,6 +115,11 @@ private:
         return _tokens[_index + offset];
     }
 
+    bool peek_type(TokenType type, int offset = 0) const
+    {
+        return peek(offset).has_value() && peek(offset).value().type == type;
+    }
+
     Token consume()
     {
         return _tokens[_index++];
@@ -113,7 +131,7 @@ private:
         {
             return consume();
         }
-        else 
+        else
         {
             exit_with(err_msg);
             return {}; // unreachable
@@ -165,7 +183,7 @@ public:
             auto expr = parse_expr();
             if (!expr.has_value())
                 exit_with("expected expression");
-            
+
             try_consume(TokenType::RIGHT_PARENTHESIS, "expected `)`");
 
             auto paren = _allocator.alloc<Node::TermParen>();
@@ -173,7 +191,7 @@ public:
 
             auto term = _allocator.alloc<Node::Term>();
             term->var = paren;
-            return term;    
+            return term;
         }
 
         return {};
@@ -251,19 +269,36 @@ public:
         return expr;
     }
 
+    std::optional<Node::Scope *> parse_scope()
+    {
+        if (!try_consume(TokenType::LEFT_CURLY_BACKET).has_value())
+            return {};
+
+        auto scope = _allocator.alloc<Node::Scope>();
+        while (auto stmt = parse_stmt())
+        {
+            scope->stmts.push_back(stmt.value());
+        }
+
+        try_consume(TokenType::RIGHT_CURLY_BRACKET, "expected `}`");
+
+        return scope;
+    }
+
     std::optional<Node::Stmt *> parse_stmt()
     {
         if (!peek().has_value())
             return {};
 
-        if (peek().value().type == TokenType::RETURN)
+        if (peek_type(TokenType::RETURN))
         {
             consume();
             Node::StmtReturn *s = _allocator.alloc<Node::StmtReturn>();
 
             if (auto ne = parse_expr())
                 s->expr = ne.value();
-            else exit_with("parsing error");
+            else
+                exit_with("parsing error");
 
             Node::Stmt *stmt = _allocator.alloc<Node::Stmt>();
             stmt->var = s;
@@ -271,9 +306,9 @@ public:
             return stmt;
         }
 
-        if (peek().value().type == TokenType::LET &&
-            peek(1).has_value() && peek(1).value().type == TokenType::IDENTIFIER &&
-            peek(2).has_value() && peek(2).value().type == TokenType::EQUAL)
+        if (peek_type(TokenType::LET) &&
+            peek_type(TokenType::IDENTIFIER, 1) &&
+            peek_type(TokenType::EQUAL, 2))
         {
             consume();
             Node::StmtLet *let = _allocator.alloc<Node::StmtLet>();
@@ -291,6 +326,41 @@ public:
             Node::Stmt *stmt = _allocator.alloc<Node::Stmt>();
             stmt->var = let;
 
+            return stmt;
+        }
+
+        if (peek_type(TokenType::LEFT_CURLY_BACKET))
+        {
+            if (auto scope = parse_scope())
+            {
+                auto stmt = _allocator.alloc<Node::Stmt>();
+                stmt->var = scope.value();
+                return stmt;
+            }
+            else exit_with("invalid scope");
+        }
+
+        if (auto tif = try_consume(TokenType::IF))
+        {
+            try_consume(TokenType::LEFT_PARENTHESIS, "expected `(`");
+
+            auto stmt_if = _allocator.alloc<Node::StmtIf>();
+
+            if (auto expr = parse_expr()) {
+                stmt_if->expr = expr.value();
+            }
+            else exit_with("invalid expression");
+
+            try_consume(TokenType::RIGHT_PARENTHESIS, "expected `)`");
+
+            if (auto scope = parse_scope())
+            {
+                stmt_if->scope = scope.value();
+            }
+            else exit_with("missing scope");
+
+            auto stmt = _allocator.alloc<Node::Stmt>();
+            stmt->var = stmt_if;
             return stmt;
         }
 
