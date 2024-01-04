@@ -35,7 +35,7 @@ private:
 public:
     Generator(const Node::Prog &prog) : _prog(std::move(prog)) {}
 
-    void generate_term(const Node::Term* term)
+    void generate_term(const Node::Term *term)
     {
         struct TermVisitor
         {
@@ -51,8 +51,7 @@ public:
             {
                 if (!gen->_vars.contains(term_ident->ident.val.value()))
                 {
-                    std::cerr << "unknown variable '" << term_ident->ident.val.value() << "'" << std::endl;
-                    exit(EXIT_FAILURE);
+                    exit_with("unknown variable '"+term_ident->ident.val.value()+"'");
                 }
 
                 const auto &var = gen->_vars[term_ident->ident.val.value()];
@@ -60,35 +59,60 @@ public:
                 offset << "QWORD [rsp + " << (gen->_stack_size - var.stack_loc) * 8 << "]\n";
                 gen->push(offset.str());
             }
+
+            void operator()(const Node::TermParen *term_paren) const
+            {
+                gen->generate_expr(term_paren->expr);
+            }
         };
 
         TermVisitor visitor{.gen = this};
         std::visit(visitor, term->var);
     }
 
-    void generate_bin_exp(const Node::BinExpr* bin_expr)
+    void generate_bin_exp(const Node::BinExpr *bin_expr)
     {
         struct BinExprVisitor
         {
             Generator *gen;
 
-            void operator()(const Node::BinExprAdd *bin_expr_add) const
+            void operator()(const Node::BinExprAdd *add) const
             {
-                gen->generate_expr(bin_expr_add->lside);
-                gen->generate_expr(bin_expr_add->rside);
+                gen->generate_expr(add->lside);
+                gen->generate_expr(add->rside);
                 gen->pop("rbx");
                 gen->pop("rax");
                 gen->_output << "  add rax, rbx\n";
                 gen->push("rax");
             }
 
-            void operator()(const Node::BinExprMulti *bin_expr_multi) const
+            void operator()(const Node::BinExprSub *sub) const
             {
-                gen->generate_expr(bin_expr_multi->lside);
-                gen->generate_expr(bin_expr_multi->rside);
+                gen->generate_expr(sub->lside);
+                gen->generate_expr(sub->rside);
+                gen->pop("rbx");
+                gen->pop("rax");
+                gen->_output << "  sub rax, rbx\n";
+                gen->push("rax");
+            }
+
+            void operator()(const Node::BinExprMulti *multi) const
+            {
+                gen->generate_expr(multi->lside);
+                gen->generate_expr(multi->rside);
                 gen->pop("rbx");
                 gen->pop("rax");
                 gen->_output << "  mul rbx\n";
+                gen->push("rax");
+            }
+
+            void operator()(const Node::BinExprDiv *div) const
+            {
+                gen->generate_expr(div->lside);
+                gen->generate_expr(div->rside);
+                gen->pop("rbx");
+                gen->pop("rax");
+                gen->_output << "  div rbx\n";
                 gen->push("rax");
             }
         };
@@ -136,8 +160,7 @@ public:
             {
                 if (gen->_vars.contains(stmt_let->identifier.val.value()))
                 {
-                    std::cerr << "'" << stmt_let->identifier.val.value() << "' already used" << std::endl;
-                    exit(EXIT_FAILURE);
+                    exit_with("'"+stmt_let->identifier.val.value()+"' already used");
                 }
 
                 gen->generate_expr(stmt_let->expr);

@@ -5,6 +5,12 @@
 #include <vector>
 #include <string>
 
+void exit_with(const std::string& err_msg)
+{
+    std::cerr << err_msg << std::endl;
+    exit(EXIT_FAILURE);
+}
+
 enum TokenType
 {
     RETURN,
@@ -15,8 +21,25 @@ enum TokenType
     LEFT_PARENTHESIS,
     RIGHT_PARENTHESIS,
     PLUS,
-    STAR
+    MINUS,
+    STAR,
+    SLASH
 };
+
+std::optional<int> bin_prec(TokenType type)
+{
+    switch (type)
+    {
+    case TokenType::PLUS:
+    case TokenType::MINUS:
+        return 0;
+    case TokenType::STAR:
+    case TokenType::SLASH:
+        return 1;
+    default:
+        return {};
+    }
+}
 
 struct Token
 {
@@ -52,6 +75,7 @@ public:
 
         while (peek().has_value())
         {
+            
             if (std::isalpha(peek().value()))
             {
                 buf.push_back(consume());
@@ -95,9 +119,17 @@ public:
                 consume();
                 tokens.push_back({.type = TokenType::PLUS});
             }
+            else if (peek().value() == '-') {
+                consume();
+                tokens.push_back({.type = TokenType::MINUS});
+            }
             else if (peek().value() == '*') {
                 consume();
                 tokens.push_back({.type = TokenType::STAR});
+            }
+            else if (peek().value() == '/') {
+                consume();
+                tokens.push_back({.type = TokenType::SLASH});
             }
             else if (std::isspace(peek().value())) {
                 consume();
@@ -105,11 +137,7 @@ public:
             else if (peek().value() == '\n') {
                 consume();
             }
-            else
-            {   
-                std::cerr << "syntax error : " << peek().value() << std::endl;
-                exit(EXIT_FAILURE);
-            }
+            else exit_with("invalid token '"+ peek().value() + '\'');
         }
 
         _index = 0;
