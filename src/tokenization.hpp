@@ -5,7 +5,7 @@
 #include <vector>
 #include <string>
 
-void exit_with(const std::string& err_msg)
+void exit_with(const std::string &err_msg)
 {
     std::cerr << err_msg << std::endl;
     exit(EXIT_FAILURE);
@@ -61,7 +61,7 @@ private:
     {
         if (_index + offset >= _src.length())
             return {};
-        return _src[_index+offset];
+        return _src.at(_index + offset);
     }
 
     char consume()
@@ -79,7 +79,24 @@ public:
 
         while (peek().has_value())
         {
-            if (std::isalpha(peek().value()))
+            if (peek().value() == '/' && peek(1).has_value() && peek(1).value() == '/')
+            {
+                while (peek().has_value() && peek().value() != '\n')
+                    consume();
+            }
+            else if (peek().value() == '/' && peek(1).has_value() && peek(1).value() == '*')
+            {
+                consume();
+                consume();
+                while (peek().has_value() && peek().value() != '*' && peek(1).has_value() && peek(1).value() != '/')
+                    consume();
+
+                if (peek().has_value())
+                    consume();
+                if (peek().has_value())
+                    consume();
+            }
+            else if (std::isalpha(peek().value()))
             {
                 buf.push_back(consume());
                 while (peek().has_value() && std::isalnum(peek().value()))
@@ -95,7 +112,7 @@ public:
                     tokens.push_back({.type = TokenType::IF});
                 else
                     tokens.push_back({.type = TokenType::IDENTIFIER, .val = buf});
-                    
+
                 buf.clear();
             }
             else if (std::isdigit(peek().value()))
@@ -108,47 +125,61 @@ public:
                 tokens.push_back({.type = TokenType::INTEGER_LITERAL, .val = buf});
                 buf.clear();
             }
-            else if (peek().value() == '=') {
+            else if (peek().value() == '=')
+            {
                 consume();
                 tokens.push_back({.type = TokenType::EQUAL});
             }
-            else if (peek().value() == '(') {
+            else if (peek().value() == '(')
+            {
                 consume();
                 tokens.push_back({.type = TokenType::LEFT_PARENTHESIS});
             }
-            else if (peek().value() == ')') {
+            else if (peek().value() == ')')
+            {
                 consume();
                 tokens.push_back({.type = TokenType::RIGHT_PARENTHESIS});
-            }else if (peek().value() == '{') {
+            }
+            else if (peek().value() == '{')
+            {
                 consume();
                 tokens.push_back({.type = TokenType::LEFT_CURLY_BACKET});
-            }else if (peek().value() == '}') {
+            }
+            else if (peek().value() == '}')
+            {
                 consume();
                 tokens.push_back({.type = TokenType::RIGHT_CURLY_BRACKET});
             }
-            else if (peek().value() == '+') {
+            else if (peek().value() == '+')
+            {
                 consume();
                 tokens.push_back({.type = TokenType::PLUS});
             }
-            else if (peek().value() == '-') {
+            else if (peek().value() == '-')
+            {
                 consume();
                 tokens.push_back({.type = TokenType::MINUS});
             }
-            else if (peek().value() == '*') {
+            else if (peek().value() == '*')
+            {
                 consume();
                 tokens.push_back({.type = TokenType::STAR});
             }
-            else if (peek().value() == '/') {
+            else if (peek().value() == '/')
+            {
                 consume();
                 tokens.push_back({.type = TokenType::SLASH});
             }
-            else if (std::isspace(peek().value())) {
+            else if (std::isspace(peek().value()))
+            {
                 consume();
             }
-            else if (peek().value() == '\n') {
+            else if (peek().value() == '\n')
+            {
                 consume();
             }
-            else exit_with("invalid token '"+ peek().value() + '\'');
+            else
+                exit_with("invalid token '" + peek().value() + '\'');
         }
 
         _index = 0;

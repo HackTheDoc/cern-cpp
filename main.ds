@@ -1,8 +1,12 @@
 let x = (64 / 2 + 2) * 2 + 1
-let y = 1
 
-if (x) {
+// ilu
+
+if (0) {
     return 69
 }
 
+/*
 return 42
+return 21
+*/

@@ -84,8 +84,8 @@ namespace Node
 
     struct StmtIf
     {
-        Expr* expr;
-        Scope* scope;
+        Expr *expr;
+        Scope *scope;
     };
 
     struct Stmt
@@ -174,7 +174,7 @@ public:
         {
             auto expr = parse_expr();
             if (!expr.has_value())
-                exit_with("expected expression");
+                exit_with("invalid statement");
 
             try_consume(TokenType::RIGHT_PARENTHESIS, "expected `)`");
 
@@ -215,7 +215,7 @@ public:
             int next_min_prec = prec.value() + 1;
             auto expr_rside = parse_expr(next_min_prec);
             if (!expr_rside.has_value())
-                exit_with("unable to parse expression");
+                exit_with("invalid statement");
 
             auto bin_expr = _allocator.emplace<Node::BinExpr>();
             auto expr_lside = _allocator.emplace<Node::Expr>(expr->var);
@@ -278,7 +278,7 @@ public:
             if (auto ne = parse_expr())
                 ret->expr = ne.value();
             else
-                exit_with("parsing error");
+                exit_with("missing return value");
 
             Node::Stmt *stmt = _allocator.emplace<Node::Stmt>(ret);
 
@@ -313,7 +313,8 @@ public:
                 auto stmt = _allocator.emplace<Node::Stmt>(scope.value());
                 return stmt;
             }
-            else exit_with("invalid scope");
+            else
+                exit_with("invalid scope");
         }
 
         if (auto tif = try_consume(TokenType::IF))
@@ -322,10 +323,12 @@ public:
 
             auto stmt_if = _allocator.emplace<Node::StmtIf>();
 
-            if (auto expr = parse_expr()) {
+            if (auto expr = parse_expr())
+            {
                 stmt_if->expr = expr.value();
             }
-            else exit_with("invalid expression");
+            else
+                exit_with("invalid expression");
 
             try_consume(TokenType::RIGHT_PARENTHESIS, "expected `)`");
 
@@ -333,7 +336,8 @@ public:
             {
                 stmt_if->scope = scope.value();
             }
-            else exit_with("missing scope");
+            else
+                exit_with("missing scope");
 
             auto stmt = _allocator.emplace<Node::Stmt>(stmt_if);
             return stmt;

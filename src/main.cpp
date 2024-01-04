@@ -4,8 +4,10 @@
 
 #include "generation.hpp"
 
-int main(int argc, char* argv[]) {
-    if (argc != 2) {
+int main(int argc, char *argv[])
+{
+    if (argc != 2)
+    {
         std::cerr << "usage: ds <file.hy>" << std::endl;
         return EXIT_FAILURE;
     }
@@ -24,7 +26,8 @@ int main(int argc, char* argv[]) {
     Parser parser(std::move(tokens));
     std::optional<Node::Prog> prog = parser.parse_prog();
 
-    if (!prog.has_value()) {
+    if (!prog.has_value())
+    {
         std::cerr << "invalid program" << std::endl;
         exit(EXIT_FAILURE);
     }

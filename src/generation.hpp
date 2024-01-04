@@ -1,11 +1,9 @@
 #pragma once
 
-#include <vector>
-#include <sstream>
-#include <algorithm>
 #include <array>
-
+#include <sstream>
 #include <cassert>
+#include <algorithm>
 
 #include "parser.hpp"
 
@@ -44,7 +42,7 @@ private:
 
     void end_scope()
     {
-        size_t pop_count = _vars.size() - _scopes.back();
+        const size_t pop_count = _vars.size() - _scopes.back();
         _output << "  add rsp, " << pop_count * 8 << "\n";
 
         _stack_size -= pop_count;
@@ -55,8 +53,13 @@ private:
         _scopes.pop_back();
     }
 
-    enum LabelType {NONE, IF, NUMBER_OF_LABEL_TYPES};
-    std::array<int, NUMBER_OF_LABEL_TYPES> label_counter{0,0};
+    enum LabelType
+    {
+        NONE,
+        IF,
+        NUMBER_OF_LABEL_TYPES
+    };
+    std::array<int, NUMBER_OF_LABEL_TYPES> label_counter{0, 0};
 
     std::string create_label(LabelType type)
     {
@@ -64,7 +67,7 @@ private:
         switch (type)
         {
         case LabelType::IF:
-            ss <<  "if_label_";
+            ss << "if_label_";
             break;
         default:
             ss << "label_";
@@ -91,18 +94,20 @@ public:
 
             void operator()(const Node::TermIdentifier *term_ident) const
             {
-                auto it = std::find_if(
+                const auto it = std::find_if(
                     gen._vars.cbegin(),
                     gen._vars.cend(),
                     [&](const Var &var)
-                    { return var.name == term_ident->ident.val.value(); });
+                    {
+                        return var.name == term_ident->ident.val.value();
+                    });
                 if (it == gen._vars.cend())
                 {
                     exit_with("unknown variable '" + term_ident->ident.val.value() + "'");
                 }
 
                 std::stringstream offset;
-                offset << "QWORD [rsp + " << (gen._stack_size - (*it).stack_loc) * 8 << "]";
+                offset << "QWORD [rsp + " << (gen._stack_size - it->stack_loc) * 8 << "]";
                 gen.push(offset.str());
             }
 
@@ -214,12 +219,13 @@ public:
 
             void operator()(const Node::StmtLet *stmt_let) const
             {
-                auto it = std::find_if(
-                    gen._vars.cbegin(),
-                    gen._vars.cend(),
-                    [&](const Var &var)
-                    { return var.name == stmt_let->identifier.val.value(); });
-                if (it != gen._vars.cend())
+                if (std::find_if(
+                        gen._vars.cbegin(),
+                        gen._vars.cend(),
+                        [&](const Var &var)
+                        {
+                            return var.name == stmt_let->identifier.val.value();
+                        }) != gen._vars.cend())
                 {
                     exit_with("identifier '" + stmt_let->identifier.val.value() + "' already used");
                 }
@@ -238,14 +244,14 @@ public:
                 gen.generate_expr(stmt_if->expr);
                 gen.pop("rax");
 
-                std::string lbl = gen.create_label(LabelType::IF);
+                const std::string lbl = gen.create_label(LabelType::IF);
 
                 gen._output << "  test rax, rax\n";
-                gen._output << "  jz " << lbl << "\n"; 
+                gen._output << "  jz " << lbl << "\n";
                 gen.generate_scope(stmt_if->scope);
 
                 gen._output << lbl << ":\n";
-           }
+            }
         };
 
         StmtVisitor visitor{.gen = *this};
