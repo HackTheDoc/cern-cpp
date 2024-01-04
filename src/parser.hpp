@@ -6,6 +6,7 @@
 #include "tokenization.hpp"
 #include "arena.hpp"
 
+/// TODO: use using instead of struct (for variants)
 namespace Node
 {
     struct Expr;
@@ -82,10 +83,27 @@ namespace Node
         Expr *expr;
     };
 
+    struct IfPred;
+
+    struct IfPredElif {
+        Expr* expr;
+        Scope* scope;
+        std::optional<IfPred*> pred;
+    };
+
+    struct IfPredElse {
+        Scope* scope;
+    };
+
+    struct IfPred {
+        std::variant<IfPredElif*, IfPredElse*> var;
+    };
+
     struct StmtIf
     {
         Expr *expr;
         Scope *scope;
+        std::optional<IfPred*> pred;
     };
 
     struct Stmt
@@ -265,6 +283,37 @@ public:
         return scope;
     }
 
+    std::optional<Node::IfPred *> parse_if_pred()
+    {
+        if (try_consume(TokenType::ELIF))
+        {
+            try_consume(TokenType::LEFT_PARENTHESIS, "expected `(`");
+            auto elif_pred = _allocator.alloc<Node::IfPredElif>();
+            if (const auto expr = parse_expr()) elif_pred->expr = expr.value();
+            else exit_with("missing expression");
+
+            try_consume(TokenType::RIGHT_PARENTHESIS, "expected `)`");
+
+            if (const auto scope = parse_scope()) elif_pred->scope = scope.value();
+            else exit_with("missing scope");
+
+            elif_pred->pred = parse_if_pred();
+
+            return _allocator.emplace<Node::IfPred>(elif_pred);
+        }
+
+        if (try_consume(TokenType::ELSE))
+        {
+            auto else_pred = _allocator.alloc<Node::IfPredElse>();
+            if (const auto scope = parse_scope()) else_pred->scope = scope.value();
+            else exit_with("missing scope");
+
+            return _allocator.emplace<Node::IfPred>(else_pred);
+        }
+
+        return {};
+    }
+
     std::optional<Node::Stmt *> parse_stmt()
     {
         if (!peek().has_value())
@@ -285,9 +334,7 @@ public:
             return stmt;
         }
 
-        if (peek_type(TokenType::LET) &&
-            peek_type(TokenType::IDENTIFIER, 1) &&
-            peek_type(TokenType::EQUAL, 2))
+        if (peek_type(TokenType::LET) && peek_type(TokenType::IDENTIFIER, 1) && peek_type(TokenType::EQUAL, 2))
         {
             consume();
             Node::StmtLet *let = _allocator.emplace<Node::StmtLet>();
@@ -338,6 +385,8 @@ public:
             }
             else
                 exit_with("missing scope");
+
+            stmt_if->pred = parse_if_pred();
 
             auto stmt = _allocator.emplace<Node::Stmt>(stmt_if);
             return stmt;

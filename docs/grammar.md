@@ -2,16 +2,25 @@ $$
 
 \begin{align}
 
-    [\text{Prog}] &\to [\text{Stmt}]^* \\
+    [\text{Prog}] &\to [\text{Scope}] \\
+
+    [\text{Scope}] &\to \{[\text{Stmt}]^*\} \\
 
     [\text{Stmt}] &\to 
     \begin{cases}
+        [\text{Scope}] \\
         \text{return [Expr]} \\
         \text{let identifier} = [\text{Expr}] \\
-        if\space([\text{Expr}])\space[\text{Scope}] \\
+        if\space([\text{Expr}])\space[\text{Scope}]\space[\text{IfPred}] \\
+
     \end{cases} \\
 
-    [\text{Scope}] &\to \{[\text{Stmt}]^*\} \\
+    [\text{IfPred}] &\to
+    \begin{cases}
+        elif\space({\text{Expr}})\space[\text{Scope}]\space[\text{IfPred}] \\
+        else\space[\text{Scope}] \\
+        \epsilon
+    \end{cases} \\
 
     [\text{Expr}] &\to 
     \begin{cases}

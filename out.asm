@@ -26,23 +26,25 @@ _start:
   pop rax
   add rax, rbx
   push rax
-  mov rax, 0
+  mov rax, 2
+  push rax
+  push QWORD [rsp + 0]
+  mov rax, 1
+  push rax
+  pop rbx
+  pop rax
+  sub rax, rbx
   push rax
   pop rax
   test rax, rax
-  jz if_label_0
+  jz label_0
   mov rax, 69
   push rax
   mov rax, 60
   pop rdi
   syscall
   add rsp, 0
-if_label_0:
-  mov rax, 21
-  push rax
-  mov rax, 60
-  pop rdi
-  syscall
+label_0:
 
   mov rax, 60
   mov rdi, 0

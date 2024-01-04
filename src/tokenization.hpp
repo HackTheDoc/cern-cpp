@@ -17,7 +17,10 @@ enum TokenType
     INTEGER_LITERAL,
     LET,
     IDENTIFIER,
+
     IF,
+    ELIF,
+    ELSE,
 
     EQUAL,
     LEFT_PARENTHESIS,
@@ -110,6 +113,10 @@ public:
                     tokens.push_back({.type = TokenType::LET});
                 else if (buf == "if")
                     tokens.push_back({.type = TokenType::IF});
+                else if (buf == "elif")
+                    tokens.push_back({.type = TokenType::ELIF});
+                else if (buf == "else")
+                    tokens.push_back({.type = TokenType::ELSE});
                 else
                     tokens.push_back({.type = TokenType::IDENTIFIER, .val = buf});
 

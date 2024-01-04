@@ -53,27 +53,11 @@ private:
         _scopes.pop_back();
     }
 
-    enum LabelType
-    {
-        NONE,
-        IF,
-        NUMBER_OF_LABEL_TYPES
-    };
-    std::array<int, NUMBER_OF_LABEL_TYPES> label_counter{0, 0};
-
-    std::string create_label(LabelType type)
+    size_t lbl_counter = 0;
+    std::string create_label()
     {
         std::stringstream ss;
-        switch (type)
-        {
-        case LabelType::IF:
-            ss << "if_label_";
-            break;
-        default:
-            ss << "label_";
-            break;
-        }
-        ss << label_counter[type]++;
+        ss << "label_" << lbl_counter++;
         return ss.str();
     }
 
@@ -203,6 +187,43 @@ public:
         end_scope();
     }
 
+    void generate_if_pred(const Node::IfPred* pred, const std::string& end_if_label)
+    {
+        struct PredVisitor
+        {
+            Generator& gen;
+            const std::string& end_label;
+
+            void operator()(const Node::IfPredElif* elif_pred) const
+            {
+                gen.generate_expr(elif_pred->expr);
+                gen.pop("rax");
+
+                const std::string lbl = gen.create_label();
+
+                gen._output << "  test rax, rax\n";
+                gen._output << "  jz " << lbl << "\n";
+
+                gen.generate_scope(elif_pred->scope);
+                gen._output << "  jmp " << end_label << "\n";
+
+                gen._output << lbl << ":\n";
+
+                if (elif_pred->pred.has_value()) {
+                    gen.generate_if_pred(elif_pred->pred.value(), end_label);
+                }
+            }
+
+            void operator()(const Node::IfPredElse* else_pred) const
+            {
+                gen.generate_scope(else_pred->scope);
+            }
+        };
+
+        PredVisitor visitor{.gen = *this, .end_label = end_if_label};
+        std::visit(visitor, pred->var);
+    }
+
     void generate_stmt(const Node::Stmt *stmt)
     {
         struct StmtVisitor
@@ -244,13 +265,20 @@ public:
                 gen.generate_expr(stmt_if->expr);
                 gen.pop("rax");
 
-                const std::string lbl = gen.create_label(LabelType::IF);
+                const std::string lbl = gen.create_label();
 
                 gen._output << "  test rax, rax\n";
                 gen._output << "  jz " << lbl << "\n";
                 gen.generate_scope(stmt_if->scope);
 
                 gen._output << lbl << ":\n";
+
+                if (stmt_if->pred.has_value())
+                {
+                    const std::string end_label = gen.create_label();
+                    gen.generate_if_pred(stmt_if->pred.value(), end_label);
+                    gen._output << end_label << ":\n";
+                }
             }
         };
 
