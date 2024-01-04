@@ -28,13 +28,7 @@ _start:
   push rax
   mov rax, 1
   push rax
-  push QWORD [rsp + 0]
-  mov rax, 1
-  push rax
-  pop rbx
-  pop rax
-  sub rax, rbx
-  push rax
+  push QWORD [rsp + 8]
   pop rax
   test rax, rax
   jz if_label_0
@@ -44,7 +38,7 @@ _start:
   pop rdi
   syscall
   add rsp, 0
-  if_label_0:
+if_label_0:
   mov rax, 42
   push rax
   mov rax, 60

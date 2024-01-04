@@ -244,7 +244,7 @@ public:
                 gen._output << "  jz " << lbl << "\n"; 
                 gen.generate_scope(stmt_if->scope);
 
-                gen._output << "  " << lbl << ":\n";
+                gen._output << lbl << ":\n";
            }
         };
 

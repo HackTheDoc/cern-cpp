@@ -158,23 +158,15 @@ public:
 
         if (auto int_lit = try_consume(TokenType::INTEGER_LITERAL))
         {
-            Node::TermIntegerLiteral *term_int_lit = _allocator.alloc<Node::TermIntegerLiteral>();
-            term_int_lit->int_lit = int_lit.value();
-
-            Node::Term *term = _allocator.alloc<Node::Term>();
-            term->var = term_int_lit;
-
+            auto term_int_lit = _allocator.emplace<Node::TermIntegerLiteral>(int_lit.value());
+            auto term = _allocator.emplace<Node::Term>(term_int_lit);
             return term;
         }
 
         if (auto ident = try_consume(TokenType::IDENTIFIER))
         {
-            Node::TermIdentifier *term_ident = _allocator.alloc<Node::TermIdentifier>();
-            term_ident->ident = ident.value();
-
-            Node::Term *term = _allocator.alloc<Node::Term>();
-            term->var = term_ident;
-
+            auto expr_ident = _allocator.emplace<Node::TermIdentifier>(ident.value());
+            auto term = _allocator.emplace<Node::Term>(expr_ident);
             return term;
         }
 
@@ -186,11 +178,8 @@ public:
 
             try_consume(TokenType::RIGHT_PARENTHESIS, "expected `)`");
 
-            auto paren = _allocator.alloc<Node::TermParen>();
-            paren->expr = expr.value();
-
-            auto term = _allocator.alloc<Node::Term>();
-            term->var = paren;
+            auto term_paren = _allocator.emplace<Node::TermParen>(expr.value());
+            auto term = _allocator.emplace<Node::Term>(term_paren);
             return term;
         }
 
@@ -203,8 +192,7 @@ public:
         if (!lterm.has_value())
             return {};
 
-        auto expr = _allocator.alloc<Node::Expr>();
-        expr->var = lterm.value();
+        auto expr = _allocator.emplace<Node::Expr>(lterm.value());
 
         while (true)
         {
@@ -229,35 +217,27 @@ public:
             if (!expr_rside.has_value())
                 exit_with("unable to parse expression");
 
-            auto bin_expr = _allocator.alloc<Node::BinExpr>();
-            auto expr_lside = _allocator.alloc<Node::Expr>();
-            expr_lside->var = expr->var;
+            auto bin_expr = _allocator.emplace<Node::BinExpr>();
+            auto expr_lside = _allocator.emplace<Node::Expr>(expr->var);
+
             if (op.type == TokenType::PLUS)
             {
-                auto add = _allocator.alloc<Node::BinExprAdd>();
-                add->lside = expr_lside;
-                add->rside = expr_rside.value();
+                auto add = _allocator.emplace<Node::BinExprAdd>(expr_lside, expr_rside.value());
                 bin_expr->var = add;
             }
             else if (op.type == TokenType::MINUS)
             {
-                auto minus = _allocator.alloc<Node::BinExprSub>();
-                minus->lside = expr_lside;
-                minus->rside = expr_rside.value();
-                bin_expr->var = minus;
+                auto sub = _allocator.emplace<Node::BinExprSub>(expr_lside, expr_rside.value());
+                bin_expr->var = sub;
             }
             else if (op.type == TokenType::STAR)
             {
-                auto multi = _allocator.alloc<Node::BinExprMulti>();
-                multi->lside = expr_lside;
-                multi->rside = expr_rside.value();
+                auto multi = _allocator.emplace<Node::BinExprMulti>(expr_lside, expr_rside.value());
                 bin_expr->var = multi;
             }
             else if (op.type == TokenType::SLASH)
             {
-                auto div = _allocator.alloc<Node::BinExprDiv>();
-                div->lside = expr_lside;
-                div->rside = expr_rside.value();
+                auto div = _allocator.emplace<Node::BinExprDiv>(expr_lside, expr_rside.value());
                 bin_expr->var = div;
             }
             else
@@ -274,7 +254,7 @@ public:
         if (!try_consume(TokenType::LEFT_CURLY_BACKET).has_value())
             return {};
 
-        auto scope = _allocator.alloc<Node::Scope>();
+        auto scope = _allocator.emplace<Node::Scope>();
         while (auto stmt = parse_stmt())
         {
             scope->stmts.push_back(stmt.value());
@@ -293,15 +273,14 @@ public:
         if (peek_type(TokenType::RETURN))
         {
             consume();
-            Node::StmtReturn *s = _allocator.alloc<Node::StmtReturn>();
+            Node::StmtReturn *ret = _allocator.emplace<Node::StmtReturn>();
 
             if (auto ne = parse_expr())
-                s->expr = ne.value();
+                ret->expr = ne.value();
             else
                 exit_with("parsing error");
 
-            Node::Stmt *stmt = _allocator.alloc<Node::Stmt>();
-            stmt->var = s;
+            Node::Stmt *stmt = _allocator.emplace<Node::Stmt>(ret);
 
             return stmt;
         }
@@ -311,7 +290,7 @@ public:
             peek_type(TokenType::EQUAL, 2))
         {
             consume();
-            Node::StmtLet *let = _allocator.alloc<Node::StmtLet>();
+            Node::StmtLet *let = _allocator.emplace<Node::StmtLet>();
             let->identifier = consume();
             consume();
             if (auto e = parse_expr())
@@ -323,9 +302,7 @@ public:
                 exit_with("invalid expression");
             }
 
-            Node::Stmt *stmt = _allocator.alloc<Node::Stmt>();
-            stmt->var = let;
-
+            Node::Stmt *stmt = _allocator.emplace<Node::Stmt>(let);
             return stmt;
         }
 
@@ -333,8 +310,7 @@ public:
         {
             if (auto scope = parse_scope())
             {
-                auto stmt = _allocator.alloc<Node::Stmt>();
-                stmt->var = scope.value();
+                auto stmt = _allocator.emplace<Node::Stmt>(scope.value());
                 return stmt;
             }
             else exit_with("invalid scope");
@@ -344,7 +320,7 @@ public:
         {
             try_consume(TokenType::LEFT_PARENTHESIS, "expected `(`");
 
-            auto stmt_if = _allocator.alloc<Node::StmtIf>();
+            auto stmt_if = _allocator.emplace<Node::StmtIf>();
 
             if (auto expr = parse_expr()) {
                 stmt_if->expr = expr.value();
@@ -359,8 +335,7 @@ public:
             }
             else exit_with("missing scope");
 
-            auto stmt = _allocator.alloc<Node::Stmt>();
-            stmt->var = stmt_if;
+            auto stmt = _allocator.emplace<Node::Stmt>(stmt_if);
             return stmt;
         }
 
