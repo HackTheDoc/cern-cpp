@@ -1,9 +1,11 @@
-let x = (64 / 2 + 2) * 2 + 1
-let y = 1
+let x = 0
+let y = 2
+
 // ilu
 
 if (y-1) {
-    return 69
+    x = (64 / 2 + 2) * 2 + 1
+    return x
 }
 elif (y) {
     return 42

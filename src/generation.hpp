@@ -61,6 +61,12 @@ private:
         return ss.str();
     }
 
+    static void exit_with(const std::string &err_msg)
+    {
+        std::cerr << "[Generation Error] " << err_msg << std::endl;
+        exit(EXIT_FAILURE);
+    }
+
 public:
     Generator(const Node::Prog &prog) : _prog(std::move(prog)) {}
 
@@ -187,14 +193,14 @@ public:
         end_scope();
     }
 
-    void generate_if_pred(const Node::IfPred* pred, const std::string& end_if_label)
+    void generate_if_pred(const Node::IfPred *pred, const std::string &end_if_label)
     {
         struct PredVisitor
         {
-            Generator& gen;
-            const std::string& end_label;
+            Generator &gen;
+            const std::string &end_label;
 
-            void operator()(const Node::IfPredElif* elif_pred) const
+            void operator()(const Node::IfPredElif *elif_pred) const
             {
                 gen.generate_expr(elif_pred->expr);
                 gen.pop("rax");
@@ -209,12 +215,13 @@ public:
 
                 gen._output << lbl << ":\n";
 
-                if (elif_pred->pred.has_value()) {
+                if (elif_pred->pred.has_value())
+                {
                     gen.generate_if_pred(elif_pred->pred.value(), end_label);
                 }
             }
 
-            void operator()(const Node::IfPredElse* else_pred) const
+            void operator()(const Node::IfPredElse *else_pred) const
             {
                 gen.generate_scope(else_pred->scope);
             }
@@ -253,6 +260,25 @@ public:
 
                 gen.generate_expr(stmt_let->expr);
                 gen._vars.push_back({.name = stmt_let->identifier.val.value(), .stack_loc = gen._stack_size});
+            }
+
+            void operator()(const Node::StmtVarAssign *var_assign) const
+            {
+                const auto it = std::find_if(
+                    gen._vars.cbegin(),
+                    gen._vars.cend(),
+                    [&](const Var &var)
+                    {
+                        return var.name == var_assign->ident.val.value();
+                    });
+                if (it == gen._vars.cend())
+                {
+                    exit_with("unknown identifier '" + var_assign->ident.val.value() + "'");
+                }
+
+                gen.generate_expr(var_assign->expr);
+                gen.pop("rax");
+                gen._output << "mov [rsp + " << (gen._stack_size - it->stack_loc) * 8 << "], rax\n";
             }
 
             void operator()(const Node::Scope *scope) const

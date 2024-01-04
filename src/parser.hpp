@@ -6,7 +6,6 @@
 #include "tokenization.hpp"
 #include "arena.hpp"
 
-/// TODO: use using instead of struct (for variants)
 namespace Node
 {
     struct Expr;
@@ -83,32 +82,41 @@ namespace Node
         Expr *expr;
     };
 
+    struct StmtVarAssign
+    {
+        Token ident;
+        Expr *expr;
+    };
+
     struct IfPred;
 
-    struct IfPredElif {
-        Expr* expr;
-        Scope* scope;
-        std::optional<IfPred*> pred;
+    struct IfPredElif
+    {
+        Expr *expr;
+        Scope *scope;
+        std::optional<IfPred *> pred;
     };
 
-    struct IfPredElse {
-        Scope* scope;
+    struct IfPredElse
+    {
+        Scope *scope;
     };
 
-    struct IfPred {
-        std::variant<IfPredElif*, IfPredElse*> var;
+    struct IfPred
+    {
+        std::variant<IfPredElif *, IfPredElse *> var;
     };
 
     struct StmtIf
     {
         Expr *expr;
         Scope *scope;
-        std::optional<IfPred*> pred;
+        std::optional<IfPred *> pred;
     };
 
     struct Stmt
     {
-        std::variant<StmtReturn *, StmtLet *, Scope *, StmtIf *> var;
+        std::variant<StmtReturn *, StmtLet *, StmtVarAssign *, Scope *, StmtIf *> var;
     };
 
     struct Prog
@@ -126,11 +134,11 @@ private:
 
     ArenaAllocator _allocator;
 
-    std::optional<Token> peek(int offset = 0) const
+    std::optional<Token> peek(const int offset = 0) const
     {
         if (_index + offset >= _tokens.size())
             return {};
-        return _tokens[_index + offset];
+        return _tokens.at(_index + offset);
     }
 
     bool peek_type(TokenType type, int offset = 0) const
@@ -143,7 +151,7 @@ private:
         return _tokens[_index++];
     }
 
-    Token try_consume(TokenType type, const std::string &err_msg)
+    Token try_consume_err(TokenType type)
     {
         if (peek().has_value() && peek().value().type == type)
         {
@@ -151,7 +159,7 @@ private:
         }
         else
         {
-            exit_with(err_msg);
+            exit_with(to_string(type));
             return {}; // unreachable
         }
     }
@@ -166,6 +174,18 @@ private:
         {
             return {};
         }
+    }
+
+    void exit_with(const std::string &err_msg)
+    {
+        std::cerr << "[Parse Error] missing " << err_msg;
+
+        if (peek(-1).value().line >= 0)
+            std::cerr << " on line " << peek(-1).value().line;
+
+        std::cerr << std::endl;
+
+        exit(EXIT_FAILURE);
     }
 
 public:
@@ -192,9 +212,9 @@ public:
         {
             auto expr = parse_expr();
             if (!expr.has_value())
-                exit_with("invalid statement");
+                exit_with("expression");
 
-            try_consume(TokenType::RIGHT_PARENTHESIS, "expected `)`");
+            try_consume_err(TokenType::RIGHT_PARENTHESIS);
 
             auto term_paren = _allocator.emplace<Node::TermParen>(expr.value());
             auto term = _allocator.emplace<Node::Term>(term_paren);
@@ -233,7 +253,7 @@ public:
             int next_min_prec = prec.value() + 1;
             auto expr_rside = parse_expr(next_min_prec);
             if (!expr_rside.has_value())
-                exit_with("invalid statement");
+                exit_with("expression");
 
             auto bin_expr = _allocator.emplace<Node::BinExpr>();
             auto expr_lside = _allocator.emplace<Node::Expr>(expr->var);
@@ -273,29 +293,34 @@ public:
             return {};
 
         auto scope = _allocator.emplace<Node::Scope>();
+        int l = -1;
         while (auto stmt = parse_stmt())
         {
             scope->stmts.push_back(stmt.value());
         }
 
-        try_consume(TokenType::RIGHT_CURLY_BRACKET, "expected `}`");
+        try_consume_err(TokenType::RIGHT_CURLY_BRACKET);
 
         return scope;
     }
 
     std::optional<Node::IfPred *> parse_if_pred()
     {
-        if (try_consume(TokenType::ELIF))
+        if (auto t = try_consume(TokenType::ELIF))
         {
-            try_consume(TokenType::LEFT_PARENTHESIS, "expected `(`");
+            try_consume_err(TokenType::LEFT_PARENTHESIS);
             auto elif_pred = _allocator.alloc<Node::IfPredElif>();
-            if (const auto expr = parse_expr()) elif_pred->expr = expr.value();
-            else exit_with("missing expression");
+            if (const auto expr = parse_expr())
+                elif_pred->expr = expr.value();
+            else
+                exit_with("expression");
 
-            try_consume(TokenType::RIGHT_PARENTHESIS, "expected `)`");
+            try_consume_err(TokenType::RIGHT_PARENTHESIS);
 
-            if (const auto scope = parse_scope()) elif_pred->scope = scope.value();
-            else exit_with("missing scope");
+            if (const auto scope = parse_scope())
+                elif_pred->scope = scope.value();
+            else
+                exit_with("scope");
 
             elif_pred->pred = parse_if_pred();
 
@@ -305,8 +330,10 @@ public:
         if (try_consume(TokenType::ELSE))
         {
             auto else_pred = _allocator.alloc<Node::IfPredElse>();
-            if (const auto scope = parse_scope()) else_pred->scope = scope.value();
-            else exit_with("missing scope");
+            if (const auto scope = parse_scope())
+                else_pred->scope = scope.value();
+            else
+                exit_with("scope");
 
             return _allocator.emplace<Node::IfPred>(else_pred);
         }
@@ -327,7 +354,7 @@ public:
             if (auto ne = parse_expr())
                 ret->expr = ne.value();
             else
-                exit_with("missing return value");
+                exit_with("return value");
 
             Node::Stmt *stmt = _allocator.emplace<Node::Stmt>(ret);
 
@@ -346,11 +373,26 @@ public:
             }
             else
             {
-                exit_with("invalid expression");
+                exit_with("expression");
             }
 
             Node::Stmt *stmt = _allocator.emplace<Node::Stmt>(let);
             return stmt;
+        }
+
+        if (peek_type(TokenType::IDENTIFIER) && peek_type(TokenType::EQUAL, 1))
+        {
+            auto var_assign = _allocator.alloc<Node::StmtVarAssign>();
+            var_assign->ident = consume();
+
+            consume(); // = token
+
+            if (const auto expr = parse_expr())
+                var_assign->expr = expr.value();
+            else
+                exit_with("expression");
+
+            return _allocator.emplace<Node::Stmt>(var_assign);
         }
 
         if (peek_type(TokenType::LEFT_CURLY_BACKET))
@@ -361,12 +403,12 @@ public:
                 return stmt;
             }
             else
-                exit_with("invalid scope");
+                exit_with("scope");
         }
 
         if (auto tif = try_consume(TokenType::IF))
         {
-            try_consume(TokenType::LEFT_PARENTHESIS, "expected `(`");
+            try_consume_err(TokenType::LEFT_PARENTHESIS);
 
             auto stmt_if = _allocator.emplace<Node::StmtIf>();
 
@@ -375,16 +417,16 @@ public:
                 stmt_if->expr = expr.value();
             }
             else
-                exit_with("invalid expression");
+                exit_with("expression");
 
-            try_consume(TokenType::RIGHT_PARENTHESIS, "expected `)`");
+            try_consume_err(TokenType::RIGHT_PARENTHESIS);
 
             if (auto scope = parse_scope())
             {
                 stmt_if->scope = scope.value();
             }
             else
-                exit_with("missing scope");
+                exit_with("scope");
 
             stmt_if->pred = parse_if_pred();
 
@@ -407,7 +449,7 @@ public:
             }
             else
             {
-                exit_with("invalid statement");
+                exit_with("statement");
             }
         }
 

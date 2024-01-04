@@ -11,6 +11,7 @@ $$
         [\text{Scope}] \\
         \text{return [Expr]} \\
         \text{let identifier} = [\text{Expr}] \\
+        \text{identifier} = [\text{Expr}] \\
         if\space([\text{Expr}])\space[\text{Scope}]\space[\text{IfPred}] \\
 
     \end{cases} \\
