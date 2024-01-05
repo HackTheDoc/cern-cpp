@@ -1,7 +1,0 @@
-[
-{
-  "directory": "/home/ogmios/dev/dsharp/build",
-  "command": "/usr/bin/g++   -g -std=gnu++20 -o CMakeFiles/ds.dir/src/main.cpp.o -c /home/ogmios/dev/dsharp/src/main.cpp",
-  "file": "/home/ogmios/dev/dsharp/src/main.cpp"
-}
-]

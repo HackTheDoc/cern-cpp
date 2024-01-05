@@ -1,3 +1,0 @@
-/home/ogmios/dev/dsharp/build/CMakeFiles/ds.dir
-/home/ogmios/dev/dsharp/build/CMakeFiles/edit_cache.dir
-/home/ogmios/dev/dsharp/build/CMakeFiles/rebuild_cache.dir

@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
 
-project(dsharp)
+project(cernunnos)
 
 set(CMAKE_CXX_STANDARD 20)
 
-add_executable(ds src/main.cpp)
+add_executable(cern src/main.cpp)
