@@ -178,10 +178,12 @@ private:
 
     void exit_with(const std::string &err_msg)
     {
-        std::cerr << "[Parse Error] missing " << err_msg;
+        std::cerr << "[Parse Error] missing " << err_msg << " on line ";
 
-        if (peek(-1).value().line >= 0)
-            std::cerr << " on line " << peek(-1).value().line;
+        if (peek().has_value())
+            std::cerr << peek().value().line;
+        else
+            std::cerr << peek(-1).value().line;
 
         std::cerr << std::endl;
 

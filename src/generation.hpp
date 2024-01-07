@@ -201,7 +201,7 @@ public:
 
             void operator()(const Node::IfPredElif *elif_pred) const
             {
-                gen._output << "  ;; elif\n";
+                gen._output << "  ; elif\n";
 
                 gen.generate_expr(elif_pred->expr);
                 gen.pop("rax");
@@ -224,7 +224,7 @@ public:
 
             void operator()(const Node::IfPredElse *else_pred) const
             {
-                gen._output << "  ;; else\n";
+                gen._output << "  ; else\n";
 
                 gen.generate_scope(else_pred->scope);
             }
@@ -242,19 +242,19 @@ public:
 
             void operator()(const Node::StmtReturn *stmt_return) const
             {
-                gen._output << "  ;; return\n";
+                gen._output << "  ; return\n";
 
                 gen.generate_expr(stmt_return->expr);
                 gen._output << "  mov rax, 60\n";
                 gen.pop("rdi");
                 gen._output << "  syscall\n";
 
-                gen._output << "  ;; /return\n";
+                gen._output << "  ; /return\n";
             }
 
             void operator()(const Node::StmtLet *stmt_let) const
             {
-                gen._output << "  ;; let\n";
+                gen._output << "  ; let\n";
 
                 if (std::find_if(
                         gen._vars.cbegin(),
@@ -270,12 +270,12 @@ public:
                 gen.generate_expr(stmt_let->expr);
                 gen._vars.push_back({.name = stmt_let->identifier.val.value(), .stack_loc = gen._stack_size});
 
-                gen._output << "  ;; /let\n";
+                gen._output << "  ; /let\n";
             }
 
             void operator()(const Node::StmtVarAssign *var_assign) const
             {
-                gen._output << "  ;; var assign\n";
+                gen._output << "  ; var assign\n";
                 
                 const auto it = std::find_if(
                     gen._vars.cbegin(),
@@ -293,21 +293,21 @@ public:
                 gen.pop("rax");
                 gen._output << "  mov [rsp + " << (gen._stack_size - it->stack_loc) * 8 << "], rax\n";
 
-                gen._output << "  ;; /var assign\n";
+                gen._output << "  ; /var assign\n";
             }
 
             void operator()(const Node::Scope *scope) const
             {
-                gen._output << " ;; scope\n";
+                gen._output << " ; scope\n";
 
                 gen.generate_scope(scope);
 
-                gen._output << "  ;; /scope\n";
+                gen._output << "  ; /scope\n";
             }
 
             void operator()(const Node::StmtIf *stmt_if) const
             {
-                gen._output << "  ;; if\n";
+                gen._output << "  ; if\n";
                 gen.generate_expr(stmt_if->expr);
                 gen.pop("rax");
 
@@ -326,7 +326,7 @@ public:
                     gen._output << end_label << ":\n";
                 }
             
-                gen._output << "  ;; /if\n";
+                gen._output << "  ; /if\n";
             }
         };
 
@@ -336,7 +336,11 @@ public:
 
     std::string generate_prog()
     {
+        _output << "extern printf\n";
         _output << "global _start\n";
+
+        // TEXT SECTION
+        _output << "section .text\n";
         _output << "_start:\n";
 
         for (const Node::Stmt *stmt : _prog.stmts)

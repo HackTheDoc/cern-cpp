@@ -1,5 +1,5 @@
 let x = 0
-let y = 2
+let y = 1
 
 // ilu
 
@@ -9,12 +9,7 @@ if (y-1) {
 }
 elif (y) {
     return 42
-}
+}/*
 else {
     return 21
 }
-
-/*
-return 42
-return 21
-*/

@@ -108,12 +108,6 @@ private:
         return _src[_index++];
     }
 
-    static void exit_with(const std::string &err_msg)
-    {
-        std::cerr << "[Tokenization Error] " << err_msg << std::endl;
-        exit(EXIT_FAILURE);
-    }
-
 public:
     Tokenizer(const std::string &src) : _src(std::move(src)) {}
 
@@ -134,8 +128,18 @@ public:
             {
                 consume();
                 consume();
+                /*
                 while (peek().has_value() && peek().value() != '*' && peek(1).has_value() && peek(1).value() != '/')
+                {
                     consume();
+                }
+                */
+                while (peek().has_value())
+                {
+                    if (peek().value() == '*' && peek(1).has_value() && peek(1).value() == '/')
+                        break;
+                    consume();
+                }
 
                 if (peek().has_value())
                     consume();
@@ -229,8 +233,11 @@ public:
             {
                 consume();
             }
-            else
-                exit_with("invalid token '" + peek().value() + '\'');
+            else {
+                std::cout << "[Tokenization Error] invalid token `" << peek().value() << "` on line " << line_count << std::endl;
+                exit(EXIT_FAILURE);
+            }
+                
         }
 
         _index = 0;

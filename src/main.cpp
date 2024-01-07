@@ -38,8 +38,8 @@ int main(int argc, char *argv[])
         outfile << generator.generate_prog();
     }
 
-    system("nasm -felf64 out.asm");
-    system("ld -o out out.o");
+    system("nasm -f elf64 out.asm -o out.o");
+    system("ld out.o -o out");
 
     return EXIT_SUCCESS;
 }
