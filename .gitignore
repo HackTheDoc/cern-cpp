@@ -2,6 +2,8 @@
 
 build/
 
+temp/
+
 out
 
 out.o
