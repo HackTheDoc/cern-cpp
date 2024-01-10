@@ -8,9 +8,9 @@
 enum TokenType
 {
     RETURN,
-    INTEGER_LITERAL,
-    LET,
+    VAR,
     IDENTIFIER,
+    INTEGER_LITERAL,
 
     IF,
     ELIF,
@@ -33,12 +33,12 @@ std::string to_string(const TokenType type)
     {
     case TokenType::RETURN:
         return "return value";
-    case TokenType::INTEGER_LITERAL:
-        return "integer literal";
-    case TokenType::LET:
-        return "`let`";
+    case TokenType::VAR:
+        return "`var`";
     case TokenType::IDENTIFIER:
         return "identifier";
+    case TokenType::INTEGER_LITERAL:
+        return "integer";
     case TokenType::IF:
         return "`if`";
     case TokenType::ELIF:
@@ -156,8 +156,8 @@ public:
 
                 if (buf == "return")
                     tokens.push_back({.type = TokenType::RETURN, .line = line_count});
-                else if (buf == "let")
-                    tokens.push_back({.type = TokenType::LET, .line = line_count});
+                else if (buf == "var")
+                    tokens.push_back({.type = TokenType::VAR, .line = line_count});
                 else if (buf == "if")
                     tokens.push_back({.type = TokenType::IF, .line = line_count});
                 else if (buf == "elif")
@@ -176,7 +176,11 @@ public:
                 {
                     buf.push_back(consume());
                 }
-                tokens.push_back({.type = TokenType::INTEGER_LITERAL, .line = line_count, .val = buf});
+                tokens.push_back({
+                    .type = TokenType::INTEGER_LITERAL,
+                    .line = line_count,
+                    .val = buf
+                });
                 buf.clear();
             }
             else if (peek().value() == '=')
@@ -233,11 +237,11 @@ public:
             {
                 consume();
             }
-            else {
+            else
+            {
                 std::cout << "[Tokenization Error] invalid token `" << peek().value() << "` on line " << line_count << std::endl;
                 exit(EXIT_FAILURE);
             }
-                
         }
 
         _index = 0;

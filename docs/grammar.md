@@ -1,21 +1,19 @@
 $$
 
-\begin{align}
+\begin{aligned}
 
-    [\text{Prog}] &\to [\text{Scope}] \\
+    [\text{Prog}] &\to [\text{Stmt}]^* \\
 
-    [\text{Scope}] &\to \{[\text{Stmt}]^*\} \\
-
-    [\text{Stmt}] &\to 
+    [\text{Stmt}] &\to
     \begin{cases}
         [\text{Scope}] \\
-        \text{return [Expr]} \\
-        \text{let identifier} = [\text{Expr}] \\
+        \text{var identifier} = [\text{Expr}] \\
         \text{identifier} = [\text{Expr}] \\
-        \text{identifier}([\text{Expr}]) \\
-        if\space([\text{Expr}])\space[\text{Scope}]\space[\text{IfPred}] \\
-
+        \text{return [Expr]} \\
+        if\space([\text{Expr}])\space[\text{Scope}]\space[\text{IfPred} 
     \end{cases} \\
+
+    [\text{Scope}] &\to \{[\text{Stmt}]^*\} \\
 
     [\text{IfPred}] &\to
     \begin{cases}
@@ -45,6 +43,6 @@ $$
         ([\text{Expr}])
     \end{cases} \\
 
-\end{align}
+\end{aligned}
 
 $$

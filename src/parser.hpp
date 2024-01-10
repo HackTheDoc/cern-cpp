@@ -6,6 +6,35 @@
 #include "tokenization.hpp"
 #include "arena.hpp"
 
+enum VarType {
+    NONE,
+    INT
+};
+
+std::string to_string(VarType t)
+{
+    switch (t)
+    {
+    case VarType::NONE:
+        return "";
+    case VarType::INT:
+        return "int";
+    default:
+        return "auto";
+    }
+}
+
+VarType to_variable_type(TokenType t)
+{
+    switch (t)
+    {
+    case TokenType::INTEGER_LITERAL:
+        return VarType::INT;
+    default:
+        return VarType::NONE;
+    }
+}
+
 namespace Node
 {
     struct Expr;
@@ -28,6 +57,7 @@ namespace Node
     struct Term
     {
         std::variant<TermIntegerLiteral *, TermIdentifier *, TermParen *> var;
+        VarType type{VarType::NONE};
     };
 
     struct BinExprAdd
@@ -62,6 +92,7 @@ namespace Node
     struct Expr
     {
         std::variant<Term *, BinExpr *> var;
+        VarType type{VarType::NONE};
     };
 
     struct Stmt;
@@ -76,7 +107,7 @@ namespace Node
         Expr *expr;
     };
 
-    struct StmtLet
+    struct StmtVar
     {
         Token identifier;
         Expr *expr;
@@ -116,7 +147,7 @@ namespace Node
 
     struct Stmt
     {
-        std::variant<StmtReturn *, StmtLet *, StmtVarAssign *, Scope *, StmtIf *> var;
+        std::variant<StmtReturn *, StmtVar *, StmtVarAssign *, Scope *, StmtIf *> var;
     };
 
     struct Prog
@@ -176,9 +207,9 @@ private:
         }
     }
 
-    void exit_with(const std::string &err_msg)
+    void exit_with(const std::string &err_msg, std::string template_msg = "missing")
     {
-        std::cerr << "[Parse Error] missing " << err_msg << " on line ";
+        std::cerr << "[Parse Error] " << template_msg << " " << err_msg << " on line ";
 
         if (peek().has_value())
             std::cerr << peek().value().line;
@@ -199,14 +230,14 @@ public:
         if (auto int_lit = try_consume(TokenType::INTEGER_LITERAL))
         {
             auto term_int_lit = _allocator.emplace<Node::TermIntegerLiteral>(int_lit.value());
-            auto term = _allocator.emplace<Node::Term>(term_int_lit);
+            auto term = _allocator.emplace<Node::Term>(term_int_lit, VarType::INT);
             return term;
         }
 
         if (auto ident = try_consume(TokenType::IDENTIFIER))
         {
             auto expr_ident = _allocator.emplace<Node::TermIdentifier>(ident.value());
-            auto term = _allocator.emplace<Node::Term>(expr_ident);
+            auto term = _allocator.emplace<Node::Term>(expr_ident, to_variable_type(ident.value().type));
             return term;
         }
 
@@ -219,7 +250,7 @@ public:
             try_consume_err(TokenType::RIGHT_PARENTHESIS);
 
             auto term_paren = _allocator.emplace<Node::TermParen>(expr.value());
-            auto term = _allocator.emplace<Node::Term>(term_paren);
+            auto term = _allocator.emplace<Node::Term>(term_paren, expr.value()->type);
             return term;
         }
 
@@ -232,7 +263,7 @@ public:
         if (!lterm.has_value())
             return {};
 
-        auto expr = _allocator.emplace<Node::Expr>(lterm.value());
+        auto expr = _allocator.emplace<Node::Expr>(lterm.value(), lterm.value()->type);
 
         while (true)
         {
@@ -256,6 +287,14 @@ public:
             auto expr_rside = parse_expr(next_min_prec);
             if (!expr_rside.has_value())
                 exit_with("expression");
+            
+            if (expr->type != VarType::NONE &&
+                expr_rside.value()->type != VarType::NONE &&
+                expr->type != expr_rside.value()->type)
+            {
+                exit_with(to_string(expr->type)+to_string(op.type)+to_string(expr_rside.value()->type),
+                            "wrong operation :");
+            }
 
             auto bin_expr = _allocator.emplace<Node::BinExpr>();
             auto expr_lside = _allocator.emplace<Node::Expr>(expr->var);
@@ -267,6 +306,7 @@ public:
             }
             else if (op.type == TokenType::MINUS)
             {
+                /// TODO: make sure you cannot sub strings
                 auto sub = _allocator.emplace<Node::BinExprSub>(expr_lside, expr_rside.value());
                 bin_expr->var = sub;
             }
@@ -277,6 +317,7 @@ public:
             }
             else if (op.type == TokenType::SLASH)
             {
+                /// TODO: make sure you cannot divide strings
                 auto div = _allocator.emplace<Node::BinExprDiv>(expr_lside, expr_rside.value());
                 bin_expr->var = div;
             }
@@ -363,22 +404,22 @@ public:
             return stmt;
         }
 
-        if (peek_type(TokenType::LET) && peek_type(TokenType::IDENTIFIER, 1) && peek_type(TokenType::EQUAL, 2))
+        if (peek_type(TokenType::VAR) && peek_type(TokenType::IDENTIFIER, 1) && peek_type(TokenType::EQUAL, 2))
         {
             consume();
-            Node::StmtLet *let = _allocator.emplace<Node::StmtLet>();
-            let->identifier = consume();
+            Node::StmtVar *var = _allocator.emplace<Node::StmtVar>();
+            var->identifier = consume();
             consume();
             if (auto e = parse_expr())
             {
-                let->expr = e.value();
+                var->expr = e.value();
             }
             else
             {
                 exit_with("expression");
             }
 
-            Node::Stmt *stmt = _allocator.emplace<Node::Stmt>(let);
+            Node::Stmt *stmt = _allocator.emplace<Node::Stmt>(var);
             return stmt;
         }
 
@@ -390,7 +431,9 @@ public:
             consume(); // = token
 
             if (const auto expr = parse_expr())
+            {
                 var_assign->expr = expr.value();
+            }
             else
                 exit_with("expression");
 

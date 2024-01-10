@@ -8,7 +8,7 @@ int main(int argc, char *argv[])
 {
     if (argc != 2)
     {
-        std::cerr << "usage: ds <file.hy>" << std::endl;
+        std::cerr << "usage: cern <file.ce>" << std::endl;
         return EXIT_FAILURE;
     }
 
@@ -34,12 +34,11 @@ int main(int argc, char *argv[])
 
     Generator generator(prog.value());
     {
-        std::ofstream outfile("out.asm");
+        std::ofstream outfile("main.cpp");
         outfile << generator.generate_prog();
     }
 
-    system("nasm -f elf64 out.asm -o out.o");
-    system("ld out.o -o out");
+    system("g++ -std=c++23 -Wall -Wextra main.cpp -o app");
 
     return EXIT_SUCCESS;
 }

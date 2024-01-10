@@ -4,8 +4,6 @@ build/
 
 temp/
 
-out
+test/app
 
-out.o
-
-out.asm
+test/main.cpp

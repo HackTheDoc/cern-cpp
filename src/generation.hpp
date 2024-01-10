@@ -1,5 +1,6 @@
 #pragma once
 
+#include <map>
 #include <sstream>
 #include <cassert>
 #include <algorithm>
@@ -10,54 +11,36 @@ class Generator
 {
 private:
     const Node::Prog _prog;
+
+    std::vector<std::string> identifiers;
+
     std::stringstream _output;
-    size_t _stack_size = 0;
+    std::stringstream _main_func;
+    std::stringstream current_scope;
 
-    struct Var
-    {
-        std::string name;
-        size_t stack_loc;
-    };
-    std::vector<Var> _vars{};
-
-    void push(const std::string &reg)
-    {
-        _output << "  push " << reg << "\n";
-        _stack_size++;
-    }
-
-    void pop(const std::string &reg)
-    {
-        _output << "  pop " << reg << "\n";
-        _stack_size--;
-    }
-
-    std::vector<size_t> _scopes{};
+    std::string indentation;
 
     void begin_scope()
     {
-        _scopes.push_back(_vars.size());
+        _main_func.copyfmt(current_scope);
+        current_scope.clear();
+
+        current_scope << indentation << "{\n";
+
+        indentation += "  ";
     }
 
     void end_scope()
     {
-        const size_t pop_count = _vars.size() - _scopes.back();
-        _output << "  add rsp, " << pop_count * 8 << "\n";
+        indentation.pop_back();
+        indentation.pop_back();
 
-        _stack_size -= pop_count;
+        current_scope << indentation << "}\n";
 
-        for (size_t i = 0; i < pop_count; i++)
-            _vars.pop_back();
+        _main_func << current_scope.str();
 
-        _scopes.pop_back();
-    }
-
-    size_t lbl_counter = 0;
-    std::string create_label()
-    {
-        std::stringstream ss;
-        ss << "label_" << lbl_counter++;
-        return ss.str();
+        current_scope.clear();
+        current_scope.copyfmt(_main_func);
     }
 
     static void exit_with(const std::string &err_msg)
@@ -69,117 +52,91 @@ private:
 public:
     Generator(const Node::Prog &prog) : _prog(std::move(prog)) {}
 
-    void generate_term(const Node::Term *term)
+    std::string generate_term(const Node::Term *term)
     {
         struct TermVisitor
         {
             Generator &gen;
+            std::string result;
 
-            void operator()(const Node::TermIntegerLiteral *term_int_lit) const
+            void operator()(const Node::TermIntegerLiteral *term_int_lit)
             {
-                gen._output << "  mov rax, " << term_int_lit->int_lit.val.value() << "\n";
-                gen.push("rax");
+                result = term_int_lit->int_lit.val.value();
             }
 
-            void operator()(const Node::TermIdentifier *term_ident) const
+            void operator()(const Node::TermIdentifier *term_ident)
             {
-                const auto it = std::find_if(
-                    gen._vars.cbegin(),
-                    gen._vars.cend(),
-                    [&](const Var &var)
-                    {
-                        return var.name == term_ident->ident.val.value();
-                    });
-                if (it == gen._vars.cend())
-                {
-                    exit_with("unknown variable '" + term_ident->ident.val.value() + "'");
-                }
-
-                std::stringstream offset;
-                offset << "QWORD [rsp + " << (gen._stack_size - it->stack_loc) * 8 << "]";
-                gen.push(offset.str());
+                result = term_ident->ident.val.value();
             }
 
-            void operator()(const Node::TermParen *term_paren) const
+            void operator()(const Node::TermParen *term_paren)
             {
-                gen.generate_expr(term_paren->expr);
+                result = "(" + gen.generate_expr(term_paren->expr) + ")";
             }
         };
 
         TermVisitor visitor{.gen = *this};
         std::visit(visitor, term->var);
+
+        return visitor.result;
     }
 
-    void generate_bin_exp(const Node::BinExpr *bin_expr)
+    std::string generate_bin_exp(const Node::BinExpr *bin_expr)
     {
         struct BinExprVisitor
         {
             Generator &gen;
+            std::string result;
 
-            void operator()(const Node::BinExprAdd *add) const
+            void operator()(const Node::BinExprAdd *add)
             {
-                gen.generate_expr(add->lside);
-                gen.generate_expr(add->rside);
-                gen.pop("rbx");
-                gen.pop("rax");
-                gen._output << "  add rax, rbx\n";
-                gen.push("rax");
+                result = gen.generate_expr(add->lside) + " + " + gen.generate_expr(add->rside);
             }
 
-            void operator()(const Node::BinExprSub *sub) const
+            void operator()(const Node::BinExprSub *sub)
             {
-                gen.generate_expr(sub->lside);
-                gen.generate_expr(sub->rside);
-                gen.pop("rbx");
-                gen.pop("rax");
-                gen._output << "  sub rax, rbx\n";
-                gen.push("rax");
+                result = gen.generate_expr(sub->lside) + " - " + gen.generate_expr(sub->rside);
             }
 
-            void operator()(const Node::BinExprMulti *multi) const
+            void operator()(const Node::BinExprMulti *multi)
             {
-                gen.generate_expr(multi->lside);
-                gen.generate_expr(multi->rside);
-                gen.pop("rbx");
-                gen.pop("rax");
-                gen._output << "  mul rbx\n";
-                gen.push("rax");
+                result = gen.generate_expr(multi->lside) + " * " + gen.generate_expr(multi->rside);
             }
 
-            void operator()(const Node::BinExprDiv *div) const
+            void operator()(const Node::BinExprDiv *div)
             {
-                gen.generate_expr(div->lside);
-                gen.generate_expr(div->rside);
-                gen.pop("rbx");
-                gen.pop("rax");
-                gen._output << "  div rbx\n";
-                gen.push("rax");
+                result = gen.generate_expr(div->lside) + " / " + gen.generate_expr(div->rside);
             }
         };
 
         BinExprVisitor visitor{.gen = *this};
         std::visit(visitor, bin_expr->var);
+
+        return visitor.result;
     }
 
-    void generate_expr(const Node::Expr *expr)
+    std::string generate_expr(const Node::Expr *expr)
     {
         struct ExprVisitor
         {
             Generator &gen;
+            std::string result;
 
-            void operator()(const Node::Term *term) const
+            void operator()(const Node::Term *term)
             {
-                gen.generate_term(term);
+                result = gen.generate_term(term);
             }
 
-            void operator()(const Node::BinExpr *expr_bin) const
+            void operator()(const Node::BinExpr *expr_bin)
             {
-                gen.generate_bin_exp(expr_bin);
+                result = gen.generate_bin_exp(expr_bin);
             }
         };
 
         ExprVisitor visitor{.gen = *this};
         std::visit(visitor, expr->var);
+    
+        return visitor.result;
     }
 
     void generate_scope(const Node::Scope *scope)
@@ -192,45 +149,33 @@ public:
         end_scope();
     }
 
-    void generate_if_pred(const Node::IfPred *pred, const std::string &end_if_label)
+    void generate_if_pred(const Node::IfPred *pred)
     {
         struct PredVisitor
         {
             Generator &gen;
-            const std::string &end_label;
 
             void operator()(const Node::IfPredElif *elif_pred) const
             {
-                gen._output << "  ; elif\n";
-
-                gen.generate_expr(elif_pred->expr);
-                gen.pop("rax");
-
-                const std::string lbl = gen.create_label();
-
-                gen._output << "  test rax, rax\n";
-                gen._output << "  jz " << lbl << "\n";
-
+                gen.current_scope << gen.indentation;
+                gen.current_scope << "else if (";
+                gen.current_scope << gen.generate_expr(elif_pred->expr);
+                gen.current_scope << ")\n";
                 gen.generate_scope(elif_pred->scope);
-                gen._output << "  jmp " << end_label << "\n";
-
-                gen._output << lbl << ":\n";
 
                 if (elif_pred->pred.has_value())
-                {
-                    gen.generate_if_pred(elif_pred->pred.value(), end_label);
-                }
+                    gen.generate_if_pred(elif_pred->pred.value());
             }
 
             void operator()(const Node::IfPredElse *else_pred) const
             {
-                gen._output << "  ; else\n";
-
+                gen.current_scope << gen.indentation;
+                gen.current_scope << "else\n";
                 gen.generate_scope(else_pred->scope);
             }
         };
 
-        PredVisitor visitor{.gen = *this, .end_label = end_if_label};
+        PredVisitor visitor{.gen = *this};
         std::visit(visitor, pred->var);
     }
 
@@ -242,91 +187,70 @@ public:
 
             void operator()(const Node::StmtReturn *stmt_return) const
             {
-                gen._output << "  ; return\n";
-
-                gen.generate_expr(stmt_return->expr);
-                gen._output << "  mov rax, 60\n";
-                gen.pop("rdi");
-                gen._output << "  syscall\n";
-
-                gen._output << "  ; /return\n";
+                gen.current_scope << gen.indentation;
+                gen.current_scope << "return " << gen.generate_expr(stmt_return->expr) << ";\n" ;
             }
 
-            void operator()(const Node::StmtLet *stmt_let) const
+            void operator()(const Node::StmtVar *stmt_var) const
             {
-                gen._output << "  ; let\n";
-
                 if (std::find_if(
-                        gen._vars.cbegin(),
-                        gen._vars.cend(),
-                        [&](const Var &var)
+                        gen.identifiers.cbegin(),
+                        gen.identifiers.cend(),
+                        [&](const std::string &ident)
                         {
-                            return var.name == stmt_let->identifier.val.value();
-                        }) != gen._vars.cend())
+                            return ident == stmt_var->identifier.val.value();
+                        }) != gen.identifiers.cend())
                 {
-                    exit_with("identifier '" + stmt_let->identifier.val.value() + "' already used");
+                    exit_with("identifier '" + stmt_var->identifier.val.value() + "' already used");
                 }
 
-                gen.generate_expr(stmt_let->expr);
-                gen._vars.push_back({.name = stmt_let->identifier.val.value(), .stack_loc = gen._stack_size});
+                gen.identifiers.push_back(stmt_var->identifier.val.value());
 
-                gen._output << "  ; /let\n";
+                gen.current_scope << gen.indentation;
+                gen.current_scope << to_string(stmt_var->expr->type);
+                gen.current_scope << " ";
+                gen.current_scope << stmt_var->identifier.val.value();
+                gen.current_scope << " = ";
+                gen.current_scope << gen.generate_expr(stmt_var->expr);
+                gen.current_scope << ";\n";
             }
 
             void operator()(const Node::StmtVarAssign *var_assign) const
             {
-                gen._output << "  ; var assign\n";
-                
                 const auto it = std::find_if(
-                    gen._vars.cbegin(),
-                    gen._vars.cend(),
-                    [&](const Var &var)
+                    gen.identifiers.cbegin(),
+                    gen.identifiers.cend(),
+                    [&](const std::string &ident)
                     {
-                        return var.name == var_assign->ident.val.value();
+                        return ident == var_assign->ident.val.value();
                     });
-                if (it == gen._vars.cend())
+                if (it == gen.identifiers.cend())
                 {
                     exit_with("unknown identifier '" + var_assign->ident.val.value() + "'");
                 }
 
-                gen.generate_expr(var_assign->expr);
-                gen.pop("rax");
-                gen._output << "  mov [rsp + " << (gen._stack_size - it->stack_loc) * 8 << "], rax\n";
-
-                gen._output << "  ; /var assign\n";
+                gen.current_scope << gen.indentation;
+                gen.current_scope << var_assign->ident.val.value();
+                gen.current_scope << " = ";
+                gen.current_scope << gen.generate_expr(var_assign->expr);
+                gen.current_scope << ";\n";
             }
 
             void operator()(const Node::Scope *scope) const
             {
-                gen._output << " ; scope\n";
-
                 gen.generate_scope(scope);
-
-                gen._output << "  ; /scope\n";
             }
 
             void operator()(const Node::StmtIf *stmt_if) const
             {
-                gen._output << "  ; if\n";
-                gen.generate_expr(stmt_if->expr);
-                gen.pop("rax");
-
-                const std::string lbl = gen.create_label();
-
-                gen._output << "  test rax, rax\n";
-                gen._output << "  jz " << lbl << "\n";
+                gen.current_scope << gen.indentation;
+                gen.current_scope << "if (";
+                gen.current_scope << gen.generate_expr(stmt_if->expr);
+                gen.current_scope << ")\n";
                 gen.generate_scope(stmt_if->scope);
 
-                gen._output << lbl << ":\n";
-
                 if (stmt_if->pred.has_value())
-                {
-                    const std::string end_label = gen.create_label();
-                    gen.generate_if_pred(stmt_if->pred.value(), end_label);
-                    gen._output << end_label << ":\n";
-                }
-            
-                gen._output << "  ; /if\n";
+                    gen.generate_if_pred(stmt_if->pred.value());
             }
         };
 
@@ -336,21 +260,23 @@ public:
 
     std::string generate_prog()
     {
-        _output << "extern printf\n";
-        _output << "global _start\n";
+        _output << "#include <iostream>\n";
 
-        // TEXT SECTION
-        _output << "section .text\n";
-        _output << "_start:\n";
+
+        indentation += "  ";
 
         for (const Node::Stmt *stmt : _prog.stmts)
             generate_stmt(stmt);
+        
+        indentation.pop_back();
+        indentation.pop_back();
 
-        // default exit
-        _output << "\n";
-        _output << "  mov rax, 60\n";
-        _output << "  mov rdi, 0\n";
-        _output << "  syscall\n";
+        _output << "\nint main(int argc, char *argv[]) {\n";
+        
+        _output << current_scope.str();
+
+        _output << "  return 0;\n";
+        _output << "}\n";
 
         return _output.str();
     }
