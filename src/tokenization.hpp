@@ -10,6 +10,7 @@ enum TokenType
     RETURN,
     VAR,
     IDENTIFIER,
+    TYPE_INT,
     INTEGER_LITERAL,
 
     IF,
@@ -17,6 +18,7 @@ enum TokenType
     ELSE,
 
     EQUAL,
+    COLON,
     LEFT_PARENTHESIS,
     RIGHT_PARENTHESIS,
     LEFT_CURLY_BACKET,
@@ -37,8 +39,10 @@ std::string to_string(const TokenType type)
         return "`var`";
     case TokenType::IDENTIFIER:
         return "identifier";
+    case TokenType::TYPE_INT:
+        return "int";
     case TokenType::INTEGER_LITERAL:
-        return "integer";
+        return "integer literal";
     case TokenType::IF:
         return "`if`";
     case TokenType::ELIF:
@@ -47,6 +51,8 @@ std::string to_string(const TokenType type)
         return "`else`";
     case TokenType::EQUAL:
         return "`=`";
+    case TokenType::COLON:
+        return "`:`";
     case TokenType::LEFT_PARENTHESIS:
         return "`(`";
     case TokenType::RIGHT_PARENTHESIS:
@@ -158,6 +164,8 @@ public:
                     tokens.push_back({.type = TokenType::RETURN, .line = line_count});
                 else if (buf == "var")
                     tokens.push_back({.type = TokenType::VAR, .line = line_count});
+                else if (buf == "int")
+                    tokens.push_back({.type = TokenType::TYPE_INT, .line = line_count});
                 else if (buf == "if")
                     tokens.push_back({.type = TokenType::IF, .line = line_count});
                 else if (buf == "elif")
@@ -187,6 +195,11 @@ public:
             {
                 consume();
                 tokens.push_back({.type = TokenType::EQUAL, .line = line_count});
+            }
+            else if (peek().value() == ':')
+            {
+                consume();
+                tokens.push_back({.type = TokenType::COLON, .line = line_count});
             }
             else if (peek().value() == '(')
             {

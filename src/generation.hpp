@@ -135,7 +135,7 @@ public:
 
         ExprVisitor visitor{.gen = *this};
         std::visit(visitor, expr->var);
-    
+
         return visitor.result;
     }
 
@@ -188,10 +188,10 @@ public:
             void operator()(const Node::StmtReturn *stmt_return) const
             {
                 gen.current_scope << gen.indentation;
-                gen.current_scope << "return " << gen.generate_expr(stmt_return->expr) << ";\n" ;
+                gen.current_scope << "return " << gen.generate_expr(stmt_return->expr) << ";\n";
             }
 
-            void operator()(const Node::StmtVar *stmt_var) const
+            void operator()(const Node::StmtImplicitVar *stmt_var) const
             {
                 if (std::find_if(
                         gen.identifiers.cbegin(),
@@ -212,6 +212,28 @@ public:
                 gen.current_scope << stmt_var->identifier.val.value();
                 gen.current_scope << " = ";
                 gen.current_scope << gen.generate_expr(stmt_var->expr);
+                gen.current_scope << ";\n";
+            }
+
+            void operator()(const Node::StmtExplicitVar *stmt_var) const
+            {
+                if (std::find_if(
+                        gen.identifiers.cbegin(),
+                        gen.identifiers.cend(),
+                        [&](const std::string &ident)
+                        {
+                            return ident == stmt_var->ident.val.value();
+                        }) != gen.identifiers.cend())
+                {
+                    exit_with("identifier '" + stmt_var->ident.val.value() + "' already used");
+                }
+
+                gen.identifiers.push_back(stmt_var->ident.val.value());
+
+                gen.current_scope << gen.indentation;
+                gen.current_scope << to_string(stmt_var->type);
+                gen.current_scope << " ";
+                gen.current_scope << stmt_var->ident.val.value();
                 gen.current_scope << ";\n";
             }
 
@@ -262,17 +284,16 @@ public:
     {
         _output << "#include <iostream>\n";
 
-
         indentation += "  ";
 
         for (const Node::Stmt *stmt : _prog.stmts)
             generate_stmt(stmt);
-        
+
         indentation.pop_back();
         indentation.pop_back();
 
         _output << "\nint main(int argc, char *argv[]) {\n";
-        
+
         _output << current_scope.str();
 
         _output << "  return 0;\n";

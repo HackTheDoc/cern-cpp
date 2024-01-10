@@ -6,7 +6,8 @@
 #include "tokenization.hpp"
 #include "arena.hpp"
 
-enum VarType {
+enum VarType
+{
     NONE,
     INT
 };
@@ -28,6 +29,7 @@ VarType to_variable_type(TokenType t)
 {
     switch (t)
     {
+    case TokenType::TYPE_INT:
     case TokenType::INTEGER_LITERAL:
         return VarType::INT;
     default:
@@ -107,10 +109,18 @@ namespace Node
         Expr *expr;
     };
 
-    struct StmtVar
+    // var ident = value
+    struct StmtImplicitVar
     {
         Token identifier;
         Expr *expr;
+    };
+
+    // var ident : type
+    struct StmtExplicitVar
+    {
+        Token ident;
+        VarType type;
     };
 
     struct StmtVarAssign
@@ -147,7 +157,7 @@ namespace Node
 
     struct Stmt
     {
-        std::variant<StmtReturn *, StmtVar *, StmtVarAssign *, Scope *, StmtIf *> var;
+        std::variant<StmtReturn *, StmtImplicitVar *, StmtExplicitVar*, StmtVarAssign *, Scope *, StmtIf *> var;
     };
 
     struct Prog
@@ -224,6 +234,14 @@ private:
 public:
     Parser(std::vector<Token> tokens) : _tokens(std::move(tokens)), _allocator(1024 * 1024 * 4) {} // 4mb
 
+    std::optional<VarType> parse_type()
+    {
+        if (auto t = try_consume(TokenType::TYPE_INT))
+            return VarType::INT;
+        
+        return {};
+    }
+
     std::optional<Node::Term *> parse_term()
     {
 
@@ -287,13 +305,13 @@ public:
             auto expr_rside = parse_expr(next_min_prec);
             if (!expr_rside.has_value())
                 exit_with("expression");
-            
+
             if (expr->type != VarType::NONE &&
                 expr_rside.value()->type != VarType::NONE &&
                 expr->type != expr_rside.value()->type)
             {
-                exit_with(to_string(expr->type)+to_string(op.type)+to_string(expr_rside.value()->type),
-                            "wrong operation :");
+                exit_with(to_string(expr->type) + to_string(op.type) + to_string(expr_rside.value()->type),
+                          "wrong operation :");
             }
 
             auto bin_expr = _allocator.emplace<Node::BinExpr>();
@@ -404,23 +422,68 @@ public:
             return stmt;
         }
 
-        if (peek_type(TokenType::VAR) && peek_type(TokenType::IDENTIFIER, 1) && peek_type(TokenType::EQUAL, 2))
+        if (peek_type(TokenType::VAR) && peek_type(TokenType::IDENTIFIER, 1))
         {
-            consume();
-            Node::StmtVar *var = _allocator.emplace<Node::StmtVar>();
-            var->identifier = consume();
-            consume();
-            if (auto e = parse_expr())
+            if (peek_type(TokenType::EQUAL, 2))
             {
-                var->expr = e.value();
-            }
-            else
-            {
-                exit_with("expression");
-            }
+                consume();
+                Node::StmtImplicitVar *var = _allocator.emplace<Node::StmtImplicitVar>();
+                var->identifier = consume();
+                consume();
+                if (auto e = parse_expr())
+                {
+                    var->expr = e.value();
+                }
+                else
+                {
+                    exit_with("expression");
+                }
 
-            Node::Stmt *stmt = _allocator.emplace<Node::Stmt>(var);
-            return stmt;
+                Node::Stmt *stmt = _allocator.emplace<Node::Stmt>(var);
+                return stmt;
+            }
+            else if (peek_type(TokenType::COLON, 2) && peek_type(TokenType::EQUAL, 4))
+            {
+                consume();
+                Node::StmtImplicitVar *var = _allocator.emplace<Node::StmtImplicitVar>();
+                var->identifier = consume();
+                consume();
+                Token type = consume();
+                consume();
+                if (auto e = parse_expr())
+                {
+                    var->expr = e.value();
+                }
+                else
+                {
+                    exit_with("expression");
+                }
+
+                if (var->expr->type != to_variable_type(type.type))
+                    exit_with(to_string(type.type), "variable value type must be");
+
+                Node::Stmt *stmt = _allocator.emplace<Node::Stmt>(var);
+                return stmt;
+            }
+            else if (peek_type(TokenType::COLON, 2))
+            {
+                consume();
+                Node::StmtExplicitVar *var = _allocator.emplace<Node::StmtExplicitVar>();
+                var->ident = consume();
+                consume();
+                if (auto t = parse_type())
+                {
+                    var->type = t.value();
+                }
+                else
+                {
+                    exit_with("type");
+                }
+
+                Node::Stmt *stmt = _allocator.emplace<Node::Stmt>(var);
+                return stmt;
+            }
+            else exit_with("type declaration");
         }
 
         if (peek_type(TokenType::IDENTIFIER) && peek_type(TokenType::EQUAL, 1))
