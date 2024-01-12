@@ -290,7 +290,12 @@ std::optional<Node::ArgList*> Parser::parse_args()
     if (const auto e = parse_expr())
     {
         auto a = _allocator.emplace<Node::ArgList>(e.value());
-        a->next_arg = parse_args();
+
+        if (const auto comma = try_consume(TokenType::COMMA))
+        {
+            a->next_arg = parse_args();
+        }
+        
         return a;
     }
     else return {};
