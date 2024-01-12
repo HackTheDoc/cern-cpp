@@ -5,7 +5,7 @@ var y : int = 2
 
 if (y-1) {
     x = (64 / 2 + 2) * 2 + 1
-    println(x)
+    println(x, 2)
 }
 elif (y) {
     println(42)
