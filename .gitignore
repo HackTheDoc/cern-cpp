@@ -4,6 +4,10 @@ build/
 
 temp/
 
+obj/
+
 test/app
 
 test/main.cpp
+
+*.d

@@ -9,8 +9,9 @@ $$
         [\text{Scope}] \\
         [\text{VarDeclaration}] \\
         \text{identifier} = [\text{Expr}] \\
+        \text{identifier } ([\text{ArgumentList}]) \\
         \text{return [Expr]} \\
-        if\space([\text{Expr}])\space[\text{Scope}]\space[\text{IfPred} 
+        if\space([\text{Expr}])\space[\text{Scope}]\space[\text{IfPred} \\
     \end{cases} \\
 
     [\text{Scope}] &\to \{[\text{Stmt}]^*\} \\
@@ -25,8 +26,15 @@ $$
     \begin{cases}
         elif\space({\text{Expr}})\space[\text{Scope}]\space[\text{IfPred}] \\
         else\space[\text{Scope}] \\
-        \epsilon
+        \varepsilon
     \end{cases} \\
+
+    [\text{ArgumentList}] &\to
+    \begin{cases}
+        [\text{Expr}] \\
+        [\text{Expr}], [\text{ArgumentList}] \\
+        \varepsilon
+    \end{cases}\\
 
     [\text{Expr}] &\to 
     \begin{cases}

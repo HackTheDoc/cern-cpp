@@ -2,7 +2,7 @@
 #include <fstream>
 #include <sstream>
 
-#include "generation.hpp"
+#include "generation.h"
 
 int main(int argc, char *argv[])
 {
@@ -32,10 +32,9 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
-    Generator generator(prog.value());
     {
         std::ofstream outfile("main.cpp");
-        outfile << generator.generate_prog();
+        outfile << gen::prog(std::move(prog.value()));
     }
 
     system("g++ -std=c++23 -Wall -Wextra main.cpp -o app");
