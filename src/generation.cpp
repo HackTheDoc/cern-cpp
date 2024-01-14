@@ -120,17 +120,13 @@ namespace gen
                 current_scope << fcall->ident.val.value();
                 current_scope << " (";
 
-                if (fcall->args.has_value())
+                if (!fcall->args.empty())
                 {
-                    current_scope << expr(fcall->args.value()->expr);
+                    current_scope << expr(fcall->args[0]);
 
-                    auto narg = fcall->args.value()->next_arg;
-                    while (narg.has_value())
+                    for (size_t i = 1; i < fcall->args.size(); i++)
                     {
-                        current_scope << ", ";
-                        current_scope << expr(narg.value()->expr);
-
-                        narg = narg.value()->next_arg;
+                        current_scope << ", " << expr(fcall->args[i]);
                     }
                 }
 
@@ -286,17 +282,13 @@ namespace gen
                 result += fcall->ident.val.value();
                 result += " (";
 
-                if (fcall->args.has_value())
+                if (!fcall->args.empty())
                 {
-                    result += expr(fcall->args.value()->expr);
+                    result += expr(fcall->args[0]);
 
-                    auto narg = fcall->args.value()->next_arg;
-                    while (narg.has_value())
+                    for (size_t i = 1; i < fcall->args.size(); i++)
                     {
-                        result += ", ";
-                        result += expr(narg.value()->expr);
-
-                        narg = narg.value()->next_arg;
+                        result += ", " + expr(fcall->args[i]);
                     }
                 }
 

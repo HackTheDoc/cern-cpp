@@ -356,21 +356,25 @@ std::optional<Node::Scope *> Parser::parse_scope()
     return scope;
 }
 
-std::optional<Node::ArgList *> Parser::parse_args()
+std::vector<Node::Expr*> Parser::parse_args()
 {
+    std::vector<Node::Expr*> args{};
+    
     if (const auto e = parse_expr())
     {
-        auto a = allocator.emplace<Node::ArgList>(e.value());
+        args.push_back(e.value());
 
-        if (const auto comma = try_consume(TokenType::COMMA))
+        while(const auto comma = try_consume(TokenType::COMMA))
         {
-            a->next_arg = parse_args();
+            if (const auto e = parse_expr())
+            {
+                args.push_back(e.value());
+            }
+            else exit_with("expression");
         }
-
-        return a;
     }
-    else
-        return {};
+
+    return args;
 }
 
 std::optional<Node::IfPred *> Parser::parse_if_pred()

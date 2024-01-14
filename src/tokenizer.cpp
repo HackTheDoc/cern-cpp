@@ -7,9 +7,9 @@ std::string to_string(const TokenType type)
     case TokenType::RETURN:
         return "return value";
     case TokenType::VAR:
-        return "`var`";
+        return "var";
     case TokenType::FUNC:
-        return "`func`";
+        return "func";
     case TokenType::IDENTIFIER:
         return "identifier";
     case TokenType::TYPE_INT:
@@ -68,9 +68,10 @@ std::optional<int> bin_prec(TokenType type)
     }
 }
 
-Tokenizer::Tokenizer(const std::string &src) 
+Tokenizer::Tokenizer(const std::string &src)
     : _src(std::move(src))
-    {}
+{
+}
 
 std::optional<char> Tokenizer::peek(const size_t offset) const
 {
@@ -101,12 +102,7 @@ std::vector<Token> Tokenizer::tokenize()
         {
             consume();
             consume();
-            /*
-            while (peek().has_value() && peek().value() != '*' && peek(1).has_value() && peek(1).value() != '/')
-            {
-                consume();
-            }
-            */
+
             while (peek().has_value())
             {
                 if (peek().value() == '*' && peek(1).has_value() && peek(1).value() == '/')
@@ -122,12 +118,11 @@ std::vector<Token> Tokenizer::tokenize()
         else if (std::isalpha(peek().value()))
         {
             buf.push_back(consume());
-            while (peek().has_value() && 
-                  (std::isalnum(peek().value()) || peek().value() == '_')
-            ) {
+            while (peek().has_value() &&
+                   (std::isalnum(peek().value()) || peek().value() == '_'))
+            {
                 buf.push_back(consume());
             }
-
 
             // TYPES
             if (buf == "int")
@@ -160,11 +155,9 @@ std::vector<Token> Tokenizer::tokenize()
             {
                 buf.push_back(consume());
             }
-            tokens.push_back({
-                .type = TokenType::INTEGER_LITERAL,
-                .line = line_count,
-                .val = buf
-            });
+            tokens.push_back({.type = TokenType::INTEGER_LITERAL,
+                              .line = line_count,
+                              .val = buf});
             buf.clear();
         }
         else if (peek().value() == '=')

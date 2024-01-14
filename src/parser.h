@@ -21,16 +21,10 @@ namespace Node
 {
     struct Expr;
 
-    struct ArgList
-    {
-        Expr *expr;
-        std::optional<ArgList *> next_arg;
-    };
-
     struct FuncCall
     {
         Token ident;
-        std::optional<ArgList *> args;
+        std::vector<Expr *> args;
         VarType type{VarType::VOID};
     };
 
@@ -196,7 +190,7 @@ private:
 
     std::unordered_map<std::string, VarType> identifiers;
 
-    std::optional<VarType> var_type(const std::string& ident);
+    std::optional<VarType> var_type(const std::string &ident);
 
     std::optional<Token> peek(const int offset = 0) const;
 
@@ -219,7 +213,7 @@ public:
 
     std::optional<Node::Scope *> parse_scope();
 
-    std::optional<Node::ArgList *> parse_args();
+    std::vector<Node::Expr *> parse_args();
 
     std::optional<Node::IfPred *> parse_if_pred();
 

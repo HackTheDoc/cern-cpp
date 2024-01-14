@@ -5,24 +5,21 @@
 #include "generation.h"
 
 namespace {
-    std::string print_call(const std::optional<Node::ArgList*>& args)
+    void exit_with(const std::string& err_msg)
+    {
+        std::cerr << "[Error] " << err_msg << std::endl;
+        exit(EXIT_FAILURE);
+    }
+
+    std::string print_call(const std::vector<Node::Expr*>& args)
     {
         std::stringstream ss;
 
-        ss << "std::cout << ";
+        ss << "std::cout";
 
-        if (args.has_value()) 
+        for (size_t i = 0; i < args.size(); i++)
         {
-            ss << gen::expr(args.value()->expr);
-
-            auto narg = args.value()->next_arg;
-            while (narg.has_value())
-            {
-                ss << " << ";
-                ss << gen::expr(narg.value()->expr);
-
-                narg = narg.value()->next_arg;
-            }
+            ss << " << " << gen::expr(args[i]);
         }
         
         ss << ";\n";
@@ -30,23 +27,15 @@ namespace {
         return ss.str();
     }
 
-    std::string println_call(const std::optional<Node::ArgList*>& args)
+    std::string println_call(const std::vector<Node::Expr*>& args)
     {
         std::stringstream ss;
 
         ss << "std::cout";
 
-        if (args.has_value()) 
+        for (size_t i = 0; i < args.size(); i++)
         {
-            ss << " << " << gen::expr(args.value()->expr);
-
-            auto narg = args.value()->next_arg;
-            while (narg.has_value())
-            {
-                ss << " << " << gen::expr(narg.value()->expr);
-
-                narg = narg.value()->next_arg;
-            }
+            ss << " << " << gen::expr(args[i]);
         }
         
         ss << " << std::endl;\n";
@@ -54,18 +43,32 @@ namespace {
         return ss.str();
     }
 
-    std::string itoc_call(const std::optional<Node::ArgList*>& args)
+    std::string itoc_call(const std::vector<Node::Expr*>& args)
     {
-        return "(char)" + gen::expr(args.value()->expr) + "+ '0'";
+        if (args.empty())
+            exit_with("function `itoc` require an argument");
+        if (args[0]->type != VarType::INT)
+            exit_with("itoc argument type must be int");
+        if (args.size() > 1)
+            exit_with("too many arguments in function call");
+
+        return "(char)" + gen::expr(args[0]) + "+ '0'";
     }
 
-    std::string ctoi_call(const std::optional<Node::ArgList*>& args)
+    std::string ctoi_call(const std::vector<Node::Expr*>& args)
     {
-        return gen::expr(args.value()->expr) + " - '0'";
+        if (args.empty())
+            exit_with("function `ctoi` require an argument");
+        if (args[0]->type != VarType::CHAR)
+            exit_with("itoc argument type must be char");
+        if (args.size() > 1)
+            exit_with("too many arguments in function call");
+
+        return gen::expr(args[0]) + " - '0'";
     }
 }
 
-std::optional<std::string> call_func(std::string func, const std::optional<Node::ArgList*>& args)
+std::optional<std::string> call_func(std::string func, const std::vector<Node::Expr*>& args)
 {
     if (func == "print")
         return print_call(args);

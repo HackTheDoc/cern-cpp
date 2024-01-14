@@ -9,6 +9,7 @@ $$
         [\text{Scope}] \\
         [\text{VarDeclaration}] \\
         \text{identifier} = [\text{Expr}] \\
+        [\text{FuncDeclaration}] \\
         [\text{FunctionCall}] \\
         \text{return [Expr]} \\
         if\space([\text{Expr}])\space[\text{Scope}]\space[\text{IfPred} \\
@@ -30,14 +31,9 @@ $$
         \varepsilon
     \end{cases} \\
 
-    [\text{ArgumentList}] &\to
-    \begin{cases}
-        [\text{Expr}] \\
-        [\text{Expr}], [\text{ArgumentList}] \\
-        \varepsilon
-    \end{cases}\\
+    [\text{Args}] &\to [\text{Expr}]^* \\
 
-    [\text{FunctionCall}] &\to \text{identifier}\space([\text{ArgumentList}]) \\
+    [\text{FunctionCall}] &\to \text{identifier}\space([\text{Args}]) \\
 
     [\text{Expr}] &\to 
     \begin{cases}
