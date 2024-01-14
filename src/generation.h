@@ -2,25 +2,27 @@
 
 #include "parser.h"
 
-namespace gen 
+namespace gen
 {
     void begin_scope();
-    
+
     void end_scope();
 
-    void exit_with(const std::string& err_msg);
+    void exit_with(const std::string &err_msg);
 
     std::string prog(const Node::Prog p);
 
-    void stmt(const Node::Stmt* s);
+    void prog_stmt(const Node::ProgStmt *s);
 
-    void scope(const Node::Scope* sc);
+    void scope(const Node::Scope *sc);
 
-    void if_pred(const Node::IfPred* pred);
+    void scope_stmt(const Node::ScopeStmt *s);
 
-    std::string expr(const Node::Expr* e);
+    void if_pred(const Node::IfPred *pred);
 
-    std::string bin_expr(const Node::BinExpr* bin);
+    std::string expr(const Node::Expr *e);
 
-    std::string term(const Node::Term* t);
+    std::string bin_expr(const Node::BinExpr *bin);
+
+    std::string term(const Node::Term *t);
 }

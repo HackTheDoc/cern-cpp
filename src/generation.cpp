@@ -5,21 +5,24 @@
 #include <sstream>
 #include <cassert>
 #include <algorithm>
+#include <stack>
 
 namespace gen
 {
     namespace
     {
         std::stringstream output;
-        std::stringstream main_func;
+        
         std::stringstream current_scope;
+        std::stack<std::stringstream> scope_stack;
 
         std::string indentation;
     }
 
     void begin_scope()
     {
-        main_func.copyfmt(current_scope);
+        scope_stack.emplace(current_scope.str());
+
         current_scope.clear();
 
         current_scope << indentation << "{\n";
@@ -34,10 +37,13 @@ namespace gen
 
         current_scope << indentation << "}\n";
 
-        main_func << current_scope.str();
+        scope_stack.top() << current_scope.str();
 
         current_scope.clear();
-        current_scope.copyfmt(main_func);
+
+        current_scope.copyfmt(scope_stack.top());
+
+        scope_stack.pop();
     }
 
     void exit_with(const std::string &err_msg)
@@ -48,29 +54,69 @@ namespace gen
 
     std::string prog(const Node::Prog p)
     {
-        output << "#include <iostream>\n";
+        output << "#include <iostream>\n\n";
 
-        indentation += "  ";
-
-        for (const Node::Stmt *s : p.stmts)
-            stmt(s);
-
-        indentation.pop_back();
-        indentation.pop_back();
-
-        output << "\nint main() {\n";
+        for (const Node::ProgStmt *s : p.stmts)
+            prog_stmt(s);
 
         output << current_scope.str();
-
-        output << "  return 0;\n";
-        output << "}\n";
 
         return output.str();
     }
 
-    void stmt(const Node::Stmt *s)
+    void prog_stmt(const Node::ProgStmt* s)
     {
-        struct StmtVisitor
+        struct ProgStmtVisitor
+        {
+            void operator()(const Node::StmtImplicitVar *stmt_var) const
+            {
+                current_scope << indentation;
+                current_scope << to_string(stmt_var->expr->type);
+                current_scope << " ";
+                current_scope << stmt_var->identifier.val.value();
+                current_scope << " = ";
+                current_scope << expr(stmt_var->expr);
+                current_scope << ";\n";
+            }
+
+            void operator()(const Node::StmtExplicitVar *stmt_var) const
+            {
+                current_scope << indentation;
+                current_scope << to_string(stmt_var->type);
+                current_scope << " ";
+                current_scope << stmt_var->ident.val.value();
+                current_scope << ";\n";
+            }
+
+            void operator()(const Node::FuncDeclaration *func) const
+            {
+                current_scope << "\n";
+                current_scope << indentation;
+                current_scope << to_string(func->type);
+                current_scope << " ";
+                current_scope << func->ident.val.value();
+                current_scope << "()\n";
+                scope(func->scope);
+            }
+        };
+
+        ProgStmtVisitor visitor;
+        std::visit(visitor, s->var);
+    }
+
+    void scope(const Node::Scope *sc)
+    {
+        begin_scope();
+
+        for (const Node::ScopeStmt *s : sc->stmts)
+            scope_stmt(s);
+
+        end_scope();
+    }
+
+    void scope_stmt(const Node::ScopeStmt *s)
+    {
+        struct ScopeStmtVisitor
         {
             void operator()(const Node::StmtReturn *stmt_return) const
             {
@@ -151,18 +197,8 @@ namespace gen
             }
         };
 
-        StmtVisitor visitor;
+        ScopeStmtVisitor visitor;
         std::visit(visitor, s->var);
-    }
-
-    void scope(const Node::Scope *sc)
-    {
-        begin_scope();
-
-        for (const Node::Stmt *s : sc->stmts)
-            stmt(s);
-
-        end_scope();
     }
 
     void if_pred(const Node::IfPred *pred)

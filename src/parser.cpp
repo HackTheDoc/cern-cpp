@@ -38,11 +38,11 @@ Parser::Parser(std::vector<Token> tokens)
 } // 4mb
 
 const std::unordered_map<std::string, VarType> Parser::buildin_func_type = {
-    {"print"    , VarType::VOID },
-    {"println"  , VarType::VOID },
+    {"print", VarType::VOID},
+    {"println", VarType::VOID},
 
-    {"itoc"     , VarType::CHAR },
-    {"ctoi"     , VarType::INT  },
+    {"itoc", VarType::CHAR},
+    {"ctoi", VarType::INT},
 };
 
 bool Parser::is_buildin_func(std::string func)
@@ -50,7 +50,7 @@ bool Parser::is_buildin_func(std::string func)
     return buildin_func_type.contains(func);
 }
 
-std::optional<VarType> Parser::var_type(const std::string& ident)
+std::optional<VarType> Parser::var_type(const std::string &ident)
 {
     if (identifiers.contains(ident))
         return identifiers[ident];
@@ -82,7 +82,7 @@ Token Parser::try_consume_err(TokenType type)
     }
     else
     {
-        exit_with("`"+to_string(type)+"`");
+        exit_with("`" + to_string(type) + "`");
         return {}; // unreachable
     }
 }
@@ -113,13 +113,15 @@ void Parser::exit_with(const std::string &err_msg, std::string template_msg)
     exit(EXIT_FAILURE);
 }
 
+/* ----- PARSING FUNCTIONS ----- */
+
 std::optional<Node::Prog> Parser::parse_prog()
 {
     Node::Prog prog;
 
     while (peek().has_value())
     {
-        if (std::optional<Node::Stmt *> stmt = parse_stmt())
+        if (std::optional<Node::ProgStmt *> stmt = parse_prog_stmt())
         {
             prog.stmts.push_back(stmt.value());
         }
@@ -132,7 +134,175 @@ std::optional<Node::Prog> Parser::parse_prog()
     return prog;
 };
 
-std::optional<Node::Stmt *> Parser::parse_stmt()
+std::optional<Node::ProgStmt *> Parser::parse_prog_stmt()
+{
+    // VAR IDENT ?
+    if (peek_type(TokenType::VAR) && peek_type(TokenType::IDENTIFIER, 1))
+    {
+        // VAR IDENT = ?
+        if (peek_type(TokenType::EQUAL, 2))
+        {
+            consume(); // var
+
+            Node::StmtImplicitVar *var = allocator.emplace<Node::StmtImplicitVar>();
+            var->identifier = consume();
+
+            if (identifiers.contains(var->identifier.val.value()))
+                exit_with("'" + var->identifier.val.value() + "' already used", "identifier");
+
+            consume(); // =
+
+            if (auto e = parse_expr())
+            {
+                var->expr = e.value();
+            }
+            else
+            {
+                exit_with("expression");
+            }
+
+            identifiers[var->identifier.val.value()] = var->expr->type;
+
+            Node::ProgStmt *stmt = allocator.emplace<Node::ProgStmt>(var);
+            return stmt;
+        }
+        // VAR IDENT : TYPE = ?
+        else if (peek_type(TokenType::COLON, 2) && peek_type(TokenType::EQUAL, 4))
+        {
+            consume(); // var
+
+            Node::StmtImplicitVar *var = allocator.emplace<Node::StmtImplicitVar>();
+            var->identifier = consume();
+
+            if (identifiers.contains(var->identifier.val.value()))
+                exit_with("'" + var->identifier.val.value() + "' already used", "identifier");
+
+            consume(); // :
+            Token type = consume();
+            consume(); // =
+
+            if (auto e = parse_expr())
+            {
+                var->expr = e.value();
+            }
+            else
+            {
+                exit_with("expression");
+            }
+
+            if (var->expr->type != to_variable_type(type.type))
+                exit_with(to_string(type.type), "variable type must be");
+
+            identifiers[var->identifier.val.value()] = var->expr->type;
+
+            Node::ProgStmt *stmt = allocator.emplace<Node::ProgStmt>(var);
+            return stmt;
+        }
+        // VAR IDENT : TYPE
+        else if (peek_type(TokenType::COLON, 2))
+        {
+            consume(); // var
+            Node::StmtExplicitVar *var = allocator.emplace<Node::StmtExplicitVar>();
+            var->ident = consume();
+
+            if (identifiers.contains(var->ident.val.value()))
+                exit_with("'" + var->ident.val.value() + "' already used", "identifier");
+
+            consume(); // :
+
+            if (auto t = parse_type())
+            {
+                var->type = t.value();
+            }
+            else
+            {
+                exit_with("type");
+            }
+
+            identifiers[var->ident.val.value()] = var->type;
+
+            Node::ProgStmt *stmt = allocator.emplace<Node::ProgStmt>(var);
+            return stmt;
+        }
+        else
+            exit_with("type declaration");
+    }
+
+    // FUNC IDENT() ?
+    if (peek_type(TokenType::FUNC))
+    {
+        consume();
+
+        auto func = allocator.alloc<Node::FuncDeclaration>();
+        func->ident = try_consume_err(TokenType::IDENTIFIER);
+
+        try_consume_err(TokenType::LEFT_PARENTHESIS);
+        try_consume_err(TokenType::RIGHT_PARENTHESIS);
+
+        if (peek_type(TokenType::COLON))
+        {
+            consume(); // :
+
+            if (const auto t = parse_type())
+                func->type = t.value();
+            else
+                exit_with("type specifier");
+
+            if (const auto s = parse_scope())
+            {
+                func->scope = s.value();
+            }
+            else
+            {
+                exit_with("scope");
+                return {}; // unreachable
+            }
+
+            if (func->type != func->scope->type)
+                exit_with(func->ident.val.value() + " is of type " + to_string(func->type), "function");
+
+            return allocator.emplace<Node::ProgStmt>(func);
+        }
+
+        if (const auto s = parse_scope())
+        {
+            func->scope = s.value();
+        }
+        else
+        {
+            exit_with("scope");
+            return {}; // unreachable
+        }
+
+        func->type = func->scope->type;
+
+        return allocator.emplace<Node::ProgStmt>(func);
+    }
+
+    return {};
+}
+
+std::optional<Node::Scope *> Parser::parse_scope()
+{
+    if (!try_consume(TokenType::LEFT_CURLY_BACKET).has_value())
+        return {};
+
+    auto scope = allocator.emplace<Node::Scope>();
+
+    while (auto stmt = parse_scope_stmt())
+    {
+        scope->stmts.push_back(stmt.value());
+
+        if (stmt.value()->type.has_value())
+            scope->type = stmt.value()->type.value();
+    }
+
+    try_consume_err(TokenType::RIGHT_CURLY_BRACKET);
+
+    return scope;
+}
+
+std::optional<Node::ScopeStmt *> Parser::parse_scope_stmt()
 {
     if (!peek().has_value())
         return {};
@@ -148,7 +318,8 @@ std::optional<Node::Stmt *> Parser::parse_stmt()
         else
             exit_with("return value");
 
-        Node::Stmt *stmt = allocator.emplace<Node::Stmt>(ret);
+        Node::ScopeStmt *stmt = allocator.emplace<Node::ScopeStmt>(ret);
+        stmt->type = ret->expr->type;
 
         return stmt;
     }
@@ -179,7 +350,7 @@ std::optional<Node::Stmt *> Parser::parse_stmt()
 
             identifiers[var->identifier.val.value()] = var->expr->type;
 
-            Node::Stmt *stmt = allocator.emplace<Node::Stmt>(var);
+            Node::ScopeStmt *stmt = allocator.emplace<Node::ScopeStmt>(var);
             return stmt;
         }
         else if (peek_type(TokenType::COLON, 2) && peek_type(TokenType::EQUAL, 4))
@@ -204,13 +375,13 @@ std::optional<Node::Stmt *> Parser::parse_stmt()
             {
                 exit_with("expression");
             }
-            
+
             if (var->expr->type != to_variable_type(type.type))
                 exit_with(to_string(type.type), "variable type must be");
 
             identifiers[var->identifier.val.value()] = var->expr->type;
 
-            Node::Stmt *stmt = allocator.emplace<Node::Stmt>(var);
+            Node::ScopeStmt *stmt = allocator.emplace<Node::ScopeStmt>(var);
             return stmt;
         }
         else if (peek_type(TokenType::COLON, 2))
@@ -235,7 +406,7 @@ std::optional<Node::Stmt *> Parser::parse_stmt()
 
             identifiers[var->ident.val.value()] = var->type;
 
-            Node::Stmt *stmt = allocator.emplace<Node::Stmt>(var);
+            Node::ScopeStmt *stmt = allocator.emplace<Node::ScopeStmt>(var);
             return stmt;
         }
         else
@@ -261,13 +432,13 @@ std::optional<Node::Stmt *> Parser::parse_stmt()
         }
         else
             exit_with("expression");
-        
+
         if (identifiers[var_assign->ident.val.value()] != var_assign->expr->type)
         {
             exit_with(to_string(var_assign->expr->type), "wrong type ");
         }
 
-        return allocator.emplace<Node::Stmt>(var_assign);
+        return allocator.emplace<Node::ScopeStmt>(var_assign);
     }
 
     // IDENT( ? )
@@ -277,14 +448,15 @@ std::optional<Node::Stmt *> Parser::parse_stmt()
         fcall->ident = consume();
 
         if (is_buildin_func(fcall->ident.val.value()))
-        {       
+        {
             fcall->type = buildin_func_type.at(fcall->ident.val.value());
         }
         else if (const auto t = var_type(fcall->ident.val.value()))
         {
             fcall->type = t.value();
         }
-        else exit_with(fcall->ident.val.value(), "unknown identifier ");
+        else
+            exit_with(fcall->ident.val.value(), "unknown identifier ");
 
         consume(); // ( token
 
@@ -292,7 +464,7 @@ std::optional<Node::Stmt *> Parser::parse_stmt()
 
         try_consume_err(TokenType::RIGHT_PARENTHESIS);
 
-        return allocator.emplace<Node::Stmt>(fcall);
+        return allocator.emplace<Node::ScopeStmt>(fcall);
     }
 
     // { ? }
@@ -300,7 +472,7 @@ std::optional<Node::Stmt *> Parser::parse_stmt()
     {
         if (auto scope = parse_scope())
         {
-            auto stmt = allocator.emplace<Node::Stmt>(scope.value());
+            auto stmt = allocator.emplace<Node::ScopeStmt>(scope.value());
             return stmt;
         }
         else
@@ -332,45 +504,29 @@ std::optional<Node::Stmt *> Parser::parse_stmt()
 
         stmt_if->pred = parse_if_pred();
 
-        auto stmt = allocator.emplace<Node::Stmt>(stmt_if);
+        auto stmt = allocator.emplace<Node::ScopeStmt>(stmt_if);
         return stmt;
     }
 
     return {};
 }
 
-std::optional<Node::Scope *> Parser::parse_scope()
+std::vector<Node::Expr *> Parser::parse_args()
 {
-    if (!try_consume(TokenType::LEFT_CURLY_BACKET).has_value())
-        return {};
+    std::vector<Node::Expr *> args{};
 
-    auto scope = allocator.emplace<Node::Scope>();
-
-    while (auto stmt = parse_stmt())
-    {
-        scope->stmts.push_back(stmt.value());
-    }
-
-    try_consume_err(TokenType::RIGHT_CURLY_BRACKET);
-
-    return scope;
-}
-
-std::vector<Node::Expr*> Parser::parse_args()
-{
-    std::vector<Node::Expr*> args{};
-    
     if (const auto e = parse_expr())
     {
         args.push_back(e.value());
 
-        while(const auto comma = try_consume(TokenType::COMMA))
+        while (const auto comma = try_consume(TokenType::COMMA))
         {
             if (const auto e = parse_expr())
             {
                 args.push_back(e.value());
             }
-            else exit_with("expression");
+            else
+                exit_with("expression");
         }
     }
 
@@ -451,9 +607,8 @@ std::optional<Node::Expr *> Parser::parse_expr(int min_prec)
             expr->type != expr_rside.value()->type)
         {
             exit_with(
-                to_string(expr->type) +" "+ to_string(op.type) +" "+ to_string(expr_rside.value()->type),
-                "wrong operation :"
-            );
+                to_string(expr->type) + " " + to_string(op.type) + " " + to_string(expr_rside.value()->type),
+                "wrong operation :");
         }
 
         auto bin_expr = allocator.emplace<Node::BinExpr>();
@@ -499,14 +654,15 @@ std::optional<Node::Term *> Parser::parse_term()
         fcall->ident = consume();
 
         if (is_buildin_func(fcall->ident.val.value()))
-        {       
+        {
             fcall->type = buildin_func_type.at(fcall->ident.val.value());
         }
         else if (const auto t = var_type(fcall->ident.val.value()))
         {
             fcall->type = t.value();
         }
-        else exit_with(fcall->ident.val.value(), "unknown identifier");
+        else
+            exit_with(fcall->ident.val.value(), "unknown identifier");
 
         consume(); // ( token
 
@@ -525,12 +681,13 @@ std::optional<Node::Term *> Parser::parse_term()
     {
         auto expr_ident = allocator.emplace<Node::TermIdentifier>(ident.value());
         auto term = allocator.emplace<Node::Term>(expr_ident);
-        
+
         if (const auto t = var_type(ident.value().val.value()))
         {
             term->type = t.value();
         }
-        else exit_with(ident.value().val.value(), "unknown identifier");
+        else
+            exit_with(ident.value().val.value(), "unknown identifier");
 
         return term;
     }

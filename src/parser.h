@@ -98,11 +98,12 @@ namespace Node
         VarType type{VarType::VOID};
     };
 
-    struct Stmt;
+    struct ScopeStmt;
 
     struct Scope
     {
-        std::vector<Stmt *> stmts;
+        std::vector<ScopeStmt *> stmts;
+        VarType type{VarType::VOID};
     };
 
     struct StmtReturn
@@ -156,7 +157,7 @@ namespace Node
         std::optional<IfPred *> pred;
     };
 
-    struct Stmt
+    struct ScopeStmt
     {
         std::variant<
             StmtReturn *,
@@ -167,11 +168,28 @@ namespace Node
             Scope *,
             StmtIf *>
             var;
+        std::optional<VarType> type{};
+    };
+
+    struct FuncDeclaration
+    {
+        Token ident;
+        Scope* scope;
+        VarType type{VarType::VOID};
+    };
+
+    struct ProgStmt
+    {
+        std::variant<
+            FuncDeclaration *,
+            StmtImplicitVar *,
+            StmtExplicitVar *>
+            var;
     };
 
     struct Prog
     {
-        std::vector<Stmt *> stmts;
+        std::vector<ProgStmt *> stmts;
     };
 }
 
@@ -209,9 +227,11 @@ public:
 
     std::optional<Node::Prog> parse_prog();
 
-    std::optional<Node::Stmt *> parse_stmt();
+    std::optional<Node::ProgStmt*> parse_prog_stmt();
 
     std::optional<Node::Scope *> parse_scope();
+
+    std::optional<Node::ScopeStmt *> parse_scope_stmt();
 
     std::vector<Node::Expr *> parse_args();
 
