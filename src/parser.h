@@ -1,5 +1,6 @@
 #pragma once
 
+#include <unordered_map>
 #include <cassert>
 #include <variant>
 
@@ -8,8 +9,9 @@
 
 enum VarType
 {
-    NONE,
-    INT
+    VOID,
+    INT,
+    CHAR
 };
 
 std::string to_string(VarType t);
@@ -19,9 +21,27 @@ namespace Node
 {
     struct Expr;
 
+    struct ArgList
+    {
+        Expr *expr;
+        std::optional<ArgList *> next_arg;
+    };
+
+    struct FuncCall
+    {
+        Token ident;
+        std::optional<ArgList *> args;
+        VarType type{VarType::VOID};
+    };
+
     struct TermIntegerLiteral
     {
         Token int_lit;
+    };
+
+    struct TermCharLiteral
+    {
+        Token char_lit;
     };
 
     struct TermIdentifier
@@ -36,8 +56,14 @@ namespace Node
 
     struct Term
     {
-        std::variant<TermIntegerLiteral *, TermIdentifier *, TermParen *> var;
-        VarType type{VarType::NONE};
+        std::variant<
+            TermIntegerLiteral *,
+            TermCharLiteral *,
+            TermIdentifier *,
+            FuncCall *,
+            TermParen *>
+            var;
+        VarType type{VarType::VOID};
     };
 
     struct BinExprAdd
@@ -71,8 +97,11 @@ namespace Node
 
     struct Expr
     {
-        std::variant<Term *, BinExpr *> var;
-        VarType type{VarType::NONE};
+        std::variant<
+            Term *,
+            BinExpr *>
+            var;
+        VarType type{VarType::VOID};
     };
 
     struct Stmt;
@@ -107,18 +136,6 @@ namespace Node
         Expr *expr;
     };
 
-    struct ArgList
-    {
-        Expr* expr;
-        std::optional<ArgList*> next_arg;
-    };
-
-    struct StmtFuncCall
-    {
-        Token ident;
-        std::optional<ArgList*> args;
-    };
-
     struct IfPred;
 
     struct IfPredElif
@@ -149,13 +166,13 @@ namespace Node
     {
         std::variant<
             StmtReturn *,
-            StmtImplicitVar *, 
-            StmtExplicitVar*, 
+            StmtImplicitVar *,
+            StmtExplicitVar *,
             StmtVarAssign *,
-            StmtFuncCall*, 
-            Scope *, 
-            StmtIf *
-        > var;
+            FuncCall *,
+            Scope *,
+            StmtIf *>
+            var;
     };
 
     struct Prog
@@ -167,11 +184,19 @@ namespace Node
 class Parser
 {
 private:
-    const std::vector<Token> _tokens;
+    const std::vector<Token> tokens;
 
-    size_t _index = 0;
+    size_t index = 0;
 
-    ArenaAllocator _allocator;
+    ArenaAllocator allocator;
+
+    static const std::unordered_map<std::string, VarType> buildin_func_type;
+
+    static bool is_buildin_func(std::string func);
+
+    std::unordered_map<std::string, VarType> identifiers;
+
+    std::optional<VarType> var_type(const std::string& ident);
 
     std::optional<Token> peek(const int offset = 0) const;
 
@@ -194,7 +219,7 @@ public:
 
     std::optional<Node::Scope *> parse_scope();
 
-    std::optional<Node::ArgList*> parse_args();
+    std::optional<Node::ArgList *> parse_args();
 
     std::optional<Node::IfPred *> parse_if_pred();
 

@@ -1,4 +1,5 @@
-#include <map>
+#include "buildin.h"
+
 #include <sstream>
 
 #include "generation.h"
@@ -52,14 +53,28 @@ namespace {
 
         return ss.str();
     }
+
+    std::string itoc_call(const std::optional<Node::ArgList*>& args)
+    {
+        return "(char)" + gen::expr(args.value()->expr) + "+ '0'";
+    }
+
+    std::string ctoi_call(const std::optional<Node::ArgList*>& args)
+    {
+        return gen::expr(args.value()->expr) + " - '0'";
+    }
 }
 
-std::optional<std::string> call_func(std::string func, const std::optional<Node::ArgList*>& args = {})
+std::optional<std::string> call_func(std::string func, const std::optional<Node::ArgList*>& args)
 {
     if (func == "print")
         return print_call(args);
     else if (func == "println")
         return println_call(args);
+    else if (func == "itoc")
+        return itoc_call(args);
+    else if (func == "ctoi")
+        return ctoi_call(args);
     
     return {};
 }

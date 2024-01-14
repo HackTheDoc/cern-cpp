@@ -18,9 +18,3 @@ $ make
 Executable will be `cern` in the `test/` directory.
 
 > The compiler will later be available from the release section (when it will have enough feature to actually do stuff).
-
-## Credits
-
-This compiler is greatly inspired from the [hygrogen](https://github.com/orosmatthew/hydrogen-cpp) lang compiler project from *orosmatthew*.
-
-I base it on his videos and add personal modification on it.

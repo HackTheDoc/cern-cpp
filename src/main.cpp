@@ -37,7 +37,8 @@ int main(int argc, char *argv[])
         outfile << gen::prog(std::move(prog.value()));
     }
 
-    system("g++ -std=c++23 -Wall -Wextra main.cpp -o app");
+    //system("g++ -std=c++23 main.cpp -o app");
+    system("g++ -std=c++23 -Wall -Wextra main.cpp -o app"); // to remove
 
     return EXIT_SUCCESS;
 }

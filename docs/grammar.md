@@ -9,7 +9,7 @@ $$
         [\text{Scope}] \\
         [\text{VarDeclaration}] \\
         \text{identifier} = [\text{Expr}] \\
-        \text{identifier } ([\text{ArgumentList}]) \\
+        [\text{FunctionCall}] \\
         \text{return [Expr]} \\
         if\space([\text{Expr}])\space[\text{Scope}]\space[\text{IfPred} \\
     \end{cases} \\
@@ -20,6 +20,7 @@ $$
     \begin{cases}
         \text{var identifier} = [\text{Expr}] \\
         \text{var identifier} : [\text{Type}] \\
+        \text{var identifier} : [\text{Type}] = [\text{Expr}] \\
     \end{cases} \\
 
     [\text{IfPred}] &\to
@@ -35,6 +36,8 @@ $$
         [\text{Expr}], [\text{ArgumentList}] \\
         \varepsilon
     \end{cases}\\
+
+    [\text{FunctionCall}] &\to \text{identifier}\space([\text{ArgumentList}]) \\
 
     [\text{Expr}] &\to 
     \begin{cases}
@@ -53,13 +56,16 @@ $$
     [\text{Term}] &\to 
     \begin{cases}
         \text{identifier} \\
+        [\text{FunctionCall}] \\
         \text{integer\_literal} \\
+        \text{char\_literal} \\
         ([\text{Expr}])
     \end{cases} \\
 
     [\text{Type}] &\to
     \begin{cases}
         int \\
+        char \\
     \end{cases} \\
 
 \end{aligned}

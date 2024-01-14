@@ -1,6 +1,6 @@
 #include "generation.h"
 
-#include "buildin.hpp"
+#include "buildin.h"
 
 #include <sstream>
 #include <cassert>
@@ -8,9 +8,8 @@
 
 namespace gen
 {
-    namespace {
-        std::vector<std::string> identifiers{};
-
+    namespace
+    {
         std::stringstream output;
         std::stringstream main_func;
         std::stringstream current_scope;
@@ -45,7 +44,7 @@ namespace gen
     {
         std::cerr << "[Generation Error] " << err_msg << std::endl;
         exit(EXIT_FAILURE);
-    }    
+    }
 
     std::string prog(const Node::Prog p)
     {
@@ -81,19 +80,6 @@ namespace gen
 
             void operator()(const Node::StmtImplicitVar *stmt_var) const
             {
-                if (std::find_if(
-                        identifiers.cbegin(),
-                        identifiers.cend(),
-                        [&](const std::string &ident)
-                        {
-                            return ident == stmt_var->identifier.val.value();
-                        }) != identifiers.cend())
-                {
-                    exit_with("identifier '" + stmt_var->identifier.val.value() + "' already used");
-                }
-
-                identifiers.push_back(stmt_var->identifier.val.value());
-
                 current_scope << indentation;
                 current_scope << to_string(stmt_var->expr->type);
                 current_scope << " ";
@@ -105,19 +91,6 @@ namespace gen
 
             void operator()(const Node::StmtExplicitVar *stmt_var) const
             {
-                if (std::find_if(
-                        identifiers.cbegin(),
-                        identifiers.cend(),
-                        [&](const std::string &ident)
-                        {
-                            return ident == stmt_var->ident.val.value();
-                        }) != identifiers.cend())
-                {
-                    exit_with("identifier '" + stmt_var->ident.val.value() + "' already used");
-                }
-
-                identifiers.push_back(stmt_var->ident.val.value());
-
                 current_scope << indentation;
                 current_scope << to_string(stmt_var->type);
                 current_scope << " ";
@@ -127,17 +100,6 @@ namespace gen
 
             void operator()(const Node::StmtVarAssign *var_assign) const
             {
-                if (std::find_if(
-                    identifiers.cbegin(),
-                    identifiers.cend(),
-                    [&](const std::string &ident)
-                    {
-                        return ident == var_assign->ident.val.value();
-                    }) == identifiers.cend())
-                {
-                    exit_with("unknown identifier '" + var_assign->ident.val.value() + "'");
-                }
-
                 current_scope << indentation;
                 current_scope << var_assign->ident.val.value();
                 current_scope << " = ";
@@ -145,24 +107,13 @@ namespace gen
                 current_scope << ";\n";
             }
 
-            void operator()(const Node::StmtFuncCall *fcall) const
+            void operator()(const Node::FuncCall *fcall) const
             {
                 if (const auto f = call_func(fcall->ident.val.value(), fcall->args))
                 {
                     current_scope << indentation;
                     current_scope << f.value();
                     return;
-                }
-
-                if (std::find_if(
-                    identifiers.cbegin(),
-                    identifiers.cend(),
-                    [&](const std::string &ident)
-                    {
-                        return ident == fcall->ident.val.value();
-                    }) == identifiers.cend())
-                {
-                    exit_with("unknown identifier '" + fcall->ident.val.value() + "'");
                 }
 
                 current_scope << indentation;
@@ -313,9 +264,43 @@ namespace gen
                 result = term_int_lit->int_lit.val.value();
             }
 
+            void operator()(const Node::TermCharLiteral *term_char_lit)
+            {
+                result = "'" + term_char_lit->char_lit.val.value() + "'";
+            }
+
             void operator()(const Node::TermIdentifier *term_ident)
             {
                 result = term_ident->ident.val.value();
+            }
+
+            void operator()(const Node::FuncCall *fcall) 
+            {
+                if (const auto f = call_func(fcall->ident.val.value(), fcall->args))
+                {
+                    result = f.value();
+                    return;
+                }
+
+                result = indentation;
+                result += fcall->ident.val.value();
+                result += " (";
+
+                if (fcall->args.has_value())
+                {
+                    result += expr(fcall->args.value()->expr);
+
+                    auto narg = fcall->args.value()->next_arg;
+                    while (narg.has_value())
+                    {
+                        result += ", ";
+                        result += expr(narg.value()->expr);
+
+                        narg = narg.value()->next_arg;
+                    }
+                }
+
+                result += ");\n";
             }
 
             void operator()(const Node::TermParen *term_paren)

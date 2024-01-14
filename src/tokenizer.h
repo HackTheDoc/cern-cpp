@@ -11,8 +11,12 @@ enum TokenType
     VAR,
     FUNC,
     IDENTIFIER,
+
     TYPE_INT,
+    TYPE_CHAR,
+    
     INTEGER_LITERAL,
+    CHAR_LITERAL,
 
     IF,
     ELIF,

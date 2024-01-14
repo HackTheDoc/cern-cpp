@@ -14,36 +14,40 @@ std::string to_string(const TokenType type)
         return "identifier";
     case TokenType::TYPE_INT:
         return "int";
+    case TokenType::TYPE_CHAR:
+        return "char";
     case TokenType::INTEGER_LITERAL:
         return "integer literal";
+    case TokenType::CHAR_LITERAL:
+        return "char literal";
     case TokenType::IF:
-        return "`if`";
+        return "if";
     case TokenType::ELIF:
-        return "`elif`";
+        return "elif";
     case TokenType::ELSE:
-        return "`else`";
+        return "else";
     case TokenType::EQUAL:
-        return "`=`";
+        return "=";
     case TokenType::COLON:
-        return "`:`";
+        return ":";
     case TokenType::COMMA:
-        return "`,`";
+        return ",";
     case TokenType::LEFT_PARENTHESIS:
-        return "`(`";
+        return "(";
     case TokenType::RIGHT_PARENTHESIS:
-        return "`)`";
+        return ")";
     case TokenType::LEFT_CURLY_BACKET:
-        return "`{`";
+        return "{";
     case TokenType::RIGHT_CURLY_BRACKET:
-        return "`}`";
+        return "}";
     case TokenType::PLUS:
-        return "`+`";
+        return "+";
     case TokenType::MINUS:
-        return "`-`";
+        return "-";
     case TokenType::STAR:
-        return "`*`";
+        return "*";
     case TokenType::SLASH:
-        return "`/`";
+        return "/";
     default:
         return "";
     }
@@ -118,19 +122,26 @@ std::vector<Token> Tokenizer::tokenize()
         else if (std::isalpha(peek().value()))
         {
             buf.push_back(consume());
-            while (peek().has_value() && std::isalnum(peek().value()))
-            {
+            while (peek().has_value() && 
+                  (std::isalnum(peek().value()) || peek().value() == '_')
+            ) {
                 buf.push_back(consume());
             }
 
-            if (buf == "return")
-                tokens.push_back({.type = TokenType::RETURN, .line = line_count});
+
+            // TYPES
+            if (buf == "int")
+                tokens.push_back({.type = TokenType::TYPE_INT, .line = line_count});
+            else if (buf == "char")
+                tokens.push_back({.type = TokenType::TYPE_CHAR, .line = line_count});
+
+            // KEYWORDS
             else if (buf == "var")
                 tokens.push_back({.type = TokenType::VAR, .line = line_count});
             else if (buf == "func")
                 tokens.push_back({.type = TokenType::FUNC, .line = line_count});
-            else if (buf == "int")
-                tokens.push_back({.type = TokenType::TYPE_INT, .line = line_count});
+            else if (buf == "return")
+                tokens.push_back({.type = TokenType::RETURN, .line = line_count});
             else if (buf == "if")
                 tokens.push_back({.type = TokenType::IF, .line = line_count});
             else if (buf == "elif")
@@ -211,6 +222,30 @@ std::vector<Token> Tokenizer::tokenize()
             consume();
             tokens.push_back({.type = TokenType::SLASH, .line = line_count});
         }
+        else if (peek().value() == '\'')
+        {
+            consume(); // '
+
+            if (peek().has_value() && isalnum(peek().value()))
+            {
+                std::string c;
+                c += consume();
+                tokens.push_back({.type = TokenType::CHAR_LITERAL, .line = line_count, .val = c});
+
+                if (!peek().has_value() || peek().value() != '\'')
+                {
+                    std::cerr << "[Error] expected `'` on line " << line_count << std::endl;
+                    exit(EXIT_FAILURE);
+                }
+
+                consume(); // '
+            }
+            else
+            {
+                std::cerr << "[Error] expected a valid char on line " << line_count << std::endl;
+                exit(EXIT_FAILURE);
+            }
+        }
         else if (peek().value() == '\n')
         {
             line_count++;
@@ -222,7 +257,7 @@ std::vector<Token> Tokenizer::tokenize()
         }
         else
         {
-            std::cout << "[Tokenization Error] invalid token `" << peek().value() << "` on line " << line_count << std::endl;
+            std::cerr << "[Error] invalid token `" << peek().value() << "` on line " << line_count << std::endl;
             exit(EXIT_FAILURE);
         }
     }
