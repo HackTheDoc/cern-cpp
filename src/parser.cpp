@@ -2,6 +2,28 @@
 
 #include "buildin.h"
 
+#include <algorithm>
+
+const std::unordered_map<std::string, VarType> Parser::buildin_func_type = {
+    {"print", VarType::VOID},
+    {"println", VarType::VOID},
+
+    {"itoc", VarType::CHAR},
+    {"ctoi", VarType::INT},
+};
+
+bool Parser::is_buildin_func(const std::string& func)
+{
+    return buildin_func_type.count(func);
+}
+
+std::unordered_map<std::string, VarType> Parser::identifiers{};
+
+bool Parser::is_var(const std::string& var)
+{
+    return identifiers.count(var);
+}
+
 std::string to_string(VarType t)
 {
     switch (t)
@@ -37,22 +59,9 @@ Parser::Parser(std::vector<Token> tokens)
 {
 } // 4mb
 
-const std::unordered_map<std::string, VarType> Parser::buildin_func_type = {
-    {"print", VarType::VOID},
-    {"println", VarType::VOID},
-
-    {"itoc", VarType::CHAR},
-    {"ctoi", VarType::INT},
-};
-
-bool Parser::is_buildin_func(std::string func)
-{
-    return buildin_func_type.contains(func);
-}
-
 std::optional<VarType> Parser::var_type(const std::string &ident)
 {
-    if (identifiers.contains(ident))
+    if (is_var(ident))
         return identifiers[ident];
     return {};
 }
@@ -147,7 +156,7 @@ std::optional<Node::ProgStmt *> Parser::parse_prog_stmt()
             Node::StmtImplicitVar *var = allocator.emplace<Node::StmtImplicitVar>();
             var->identifier = consume();
 
-            if (identifiers.contains(var->identifier.val.value()))
+            if (is_var(var->identifier.val.value()))
                 exit_with("'" + var->identifier.val.value() + "' already used", "identifier");
 
             consume(); // =
@@ -174,7 +183,7 @@ std::optional<Node::ProgStmt *> Parser::parse_prog_stmt()
             Node::StmtImplicitVar *var = allocator.emplace<Node::StmtImplicitVar>();
             var->identifier = consume();
 
-            if (identifiers.contains(var->identifier.val.value()))
+            if (is_var(var->identifier.val.value()))
                 exit_with("'" + var->identifier.val.value() + "' already used", "identifier");
 
             consume(); // :
@@ -205,7 +214,7 @@ std::optional<Node::ProgStmt *> Parser::parse_prog_stmt()
             Node::StmtExplicitVar *var = allocator.emplace<Node::StmtExplicitVar>();
             var->ident = consume();
 
-            if (identifiers.contains(var->ident.val.value()))
+            if (is_var(var->ident.val.value()))
                 exit_with("'" + var->ident.val.value() + "' already used", "identifier");
 
             consume(); // :
@@ -261,6 +270,8 @@ std::optional<Node::ProgStmt *> Parser::parse_prog_stmt()
             if (func->type != func->scope->type)
                 exit_with(func->ident.val.value() + " is of type " + to_string(func->type), "function");
 
+            identifiers[func->ident.val.value()] = func->type;
+
             return allocator.emplace<Node::ProgStmt>(func);
         }
 
@@ -275,6 +286,8 @@ std::optional<Node::ProgStmt *> Parser::parse_prog_stmt()
         }
 
         func->type = func->scope->type;
+
+        identifiers[func->ident.val.value()] = func->type;
 
         return allocator.emplace<Node::ProgStmt>(func);
     }
@@ -334,7 +347,7 @@ std::optional<Node::ScopeStmt *> Parser::parse_scope_stmt()
             Node::StmtImplicitVar *var = allocator.emplace<Node::StmtImplicitVar>();
             var->identifier = consume();
 
-            if (identifiers.contains(var->identifier.val.value()))
+            if (is_var(var->identifier.val.value()))
                 exit_with("'" + var->identifier.val.value() + "' already used", "identifier");
 
             consume(); // =
@@ -360,7 +373,7 @@ std::optional<Node::ScopeStmt *> Parser::parse_scope_stmt()
             Node::StmtImplicitVar *var = allocator.emplace<Node::StmtImplicitVar>();
             var->identifier = consume();
 
-            if (identifiers.contains(var->identifier.val.value()))
+            if (is_var(var->identifier.val.value()))
                 exit_with("'" + var->identifier.val.value() + "' already used", "identifier");
 
             consume(); // :
@@ -390,7 +403,7 @@ std::optional<Node::ScopeStmt *> Parser::parse_scope_stmt()
             Node::StmtExplicitVar *var = allocator.emplace<Node::StmtExplicitVar>();
             var->ident = consume();
 
-            if (identifiers.contains(var->ident.val.value()))
+            if (is_var(var->ident.val.value()))
                 exit_with("'" + var->ident.val.value() + "' already used", "identifier");
 
             consume(); // :
@@ -419,7 +432,7 @@ std::optional<Node::ScopeStmt *> Parser::parse_scope_stmt()
         auto var_assign = allocator.alloc<Node::StmtVarAssign>();
         var_assign->ident = consume();
 
-        if (!identifiers.contains(var_assign->ident.val.value()))
+        if (!is_var(var_assign->ident.val.value()))
         {
             exit_with("'" + var_assign->ident.val.value() + "'", "unknown identifier");
         }

@@ -204,9 +204,11 @@ private:
 
     static const std::unordered_map<std::string, VarType> buildin_func_type;
 
-    static bool is_buildin_func(std::string func);
+    static bool is_buildin_func(const std::string& func);
 
-    std::unordered_map<std::string, VarType> identifiers;
+    static std::unordered_map<std::string, VarType> identifiers;
+
+    static bool is_var(const std::string& var);
 
     std::optional<VarType> var_type(const std::string &ident);
 
