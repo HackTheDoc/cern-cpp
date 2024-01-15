@@ -8,7 +8,7 @@ CXXFLAGS = -std=c++23 -Wall
 LDFLAGS = 
 
 # Makefile settings - Can be customized.
-APPNAME = test/cern
+APPNAME = build/cern
 EXT = .cpp
 SRCDIR = src
 OBJDIR = obj

@@ -9,24 +9,17 @@ $$
         [\text{FuncDeclaration}] \\
         [\text{VarDeclaration}] \\
     \end{cases} \\
+    
+    [\text{Scope}] &\to \{[\text{ScopeStmt}]^*\} \\
 
     [\text{ScopeStmt}] &\to
     \begin{cases}
-        [\text{Scope}] \\
         [\text{VarDeclaration}] \\
         \text{identifier} = [\text{Expr}] \\
         [\text{FunctionCall}] \\
-        \text{return [Expr]} \\
+        [\text{Scope}] \\
         if\space([\text{Expr}])\space[\text{Scope}]\space[\text{IfPred} \\
-    \end{cases} \\
-
-    [\text{Scope}] &\to \{[\text{ScopeStmt}]^*\} \\
-
-    [\text{VarDeclaration}] &\to
-    \begin{cases}
-        \text{var identifier} = [\text{Expr}] \\
-        \text{var identifier} : [\text{Type}] \\
-        \text{var identifier} : [\text{Type}] = [\text{Expr}] \\
+        \text{return [Expr]} \\
     \end{cases} \\
 
     [\text{FuncDeclaration}] &\to
@@ -35,16 +28,23 @@ $$
         \text{func identifier}\space()\text{ : }[\text{Type}]\space[\text{Scope}] \\
     \end{cases} \\
 
+    [\text{VarDeclaration}] &\to
+    \begin{cases}
+        \text{var identifier} = [\text{Expr}] \\
+        \text{var identifier} : [\text{Type}] = [\text{Expr}] \\
+        \text{var identifier} : [\text{Type}] \\
+    \end{cases} \\
+
+    [\text{Args}] &\to [\text{Expr}]^* \\
+
+    [\text{FunctionCall}] &\to \text{identifier}\space([\text{Args}]) \\
+
     [\text{IfPred}] &\to
     \begin{cases}
         elif\space({\text{Expr}})\space[\text{Scope}]\space[\text{IfPred}] \\
         else\space[\text{Scope}] \\
         \varepsilon
     \end{cases} \\
-
-    [\text{Args}] &\to [\text{Expr}]^* \\
-
-    [\text{FunctionCall}] &\to \text{identifier}\space([\text{Args}]) \\
 
     [\text{Expr}] &\to 
     \begin{cases}

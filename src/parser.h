@@ -21,6 +21,8 @@ namespace Node
 {
     struct Expr;
 
+    struct Scope;
+
     struct FuncCall
     {
         Token ident;
@@ -100,17 +102,6 @@ namespace Node
 
     struct ScopeStmt;
 
-    struct Scope
-    {
-        std::vector<ScopeStmt *> stmts;
-        VarType type{VarType::VOID};
-    };
-
-    struct StmtReturn
-    {
-        Expr *expr;
-    };
-
     // var ident = value
     struct StmtImplicitVar
     {
@@ -125,9 +116,22 @@ namespace Node
         VarType type;
     };
 
+    // func indent() { ? }
+    struct FuncDeclaration
+    {
+        Token ident;
+        Scope* scope;
+        VarType type{VarType::VOID};
+    };
+
     struct StmtVarAssign
     {
         Token ident;
+        Expr *expr;
+    };
+
+    struct StmtReturn
+    {
         Expr *expr;
     };
 
@@ -160,21 +164,20 @@ namespace Node
     struct ScopeStmt
     {
         std::variant<
-            StmtReturn *,
+            Scope *,
             StmtImplicitVar *,
             StmtExplicitVar *,
             StmtVarAssign *,
             FuncCall *,
-            Scope *,
+            StmtReturn *,
             StmtIf *>
             var;
         std::optional<VarType> type{};
     };
 
-    struct FuncDeclaration
+    struct Scope
     {
-        Token ident;
-        Scope* scope;
+        std::vector<ScopeStmt *> stmts;
         VarType type{VarType::VOID};
     };
 
@@ -196,32 +199,47 @@ namespace Node
 class Parser
 {
 private:
+    // contains every token in order
     const std::vector<Token> tokens;
 
+    // current token index
     size_t index = 0;
 
     ArenaAllocator allocator;
 
+    // map the buildin functions and their return type
     static const std::unordered_map<std::string, VarType> buildin_func_type;
 
+    // check if an identifier is a buildin function
     static bool is_buildin_func(const std::string& func);
 
+    // map the identifiers (vars and funcs) with their return type
     static std::unordered_map<std::string, VarType> identifiers;
 
+    // check if an identifier exist or not
     static bool is_var(const std::string& var);
 
+    // parse the type associated with an identifier
     std::optional<VarType> var_type(const std::string &ident);
 
+    // peek the current token (use the offset to check forward or backward)
     std::optional<Token> peek(const int offset = 0) const;
 
+    // check the type of the current token (return false if there is no token left)
     bool peek_type(TokenType type, int offset = 0) const;
 
+    // consume the current token and return it; move to the next token
     Token consume();
 
+    // consume if the token have the given type; else exit with an error
     Token try_consume_err(TokenType type);
 
+    // try to consume a token of a specific type
     std::optional<Token> try_consume(TokenType type);
 
+    /// @brief exit with an error message
+    /// @param err_msg content of the error message
+    /// @param template_msg balise of it (ex: missing, expected, ...)
     void exit_with(const std::string &err_msg, std::string template_msg = "missing");
 
 public:

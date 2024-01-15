@@ -6,6 +6,6 @@ temp/
 
 obj/
 
-test/
+build/
 
 *.d
