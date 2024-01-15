@@ -12,7 +12,7 @@ This compiler is written in CPP, but a futur one will be self-hosted.
 Requires `gcc` on a Linux operating system.
 
 ```
-$ git clone https://github.com/hackthedoc/cern-cpp
+$ git clone https://github.com/hackthedoc/cern-cpp.git
 $ cd cern-cpp
 $ make
 ```
