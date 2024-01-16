@@ -12,9 +12,11 @@ enum TokenType
     FUNC,
     IDENTIFIER,
 
+    TYPE_BOOL,
     TYPE_INT,
     TYPE_CHAR,
-    
+
+    BOOLEAN_LITEARL,
     INTEGER_LITERAL,
     CHAR_LITERAL,
 
@@ -32,7 +34,17 @@ enum TokenType
     PLUS,
     MINUS,
     STAR,
-    SLASH
+    SLASH,
+
+    IS_EQUAL,
+    IS_NOT_EQUAL,
+    GREATER_OR_EQUAL,
+    GREATER,
+    LOWER_OR_EQUAL,
+    LOWER,
+    AND,
+    OR,
+    NOT
 };
 
 /// @brief basic conversion function
@@ -40,10 +52,12 @@ enum TokenType
 /// @return string equivalent to the given token type
 std::string to_string(const TokenType type);
 
-/// @brief calc the bin prec of a token
+/// @brief calc the operator prec of a token
 /// @param type
-/// @return an optional value of the bin prec (return nothing if the token is not an operator)
-std::optional<int> bin_prec(TokenType type);
+/// @return an optional value of the operator prec (return nothing if the token is not an operator)
+std::optional<int> op_prec(TokenType type);
+
+bool is_operator(TokenType type);
 
 /// @brief a token is represented by its type, the line it is on and an optional value
 struct Token
@@ -60,7 +74,7 @@ private:
     const std::string _src;
     /// @brief index of the current character
     size_t _index = 0;
-    
+
     /// @brief peek a character value (default: current)
     /// @param offset to peek forward or backward (default: 0)
     std::optional<char> peek(const size_t offset = 0) const;
@@ -73,7 +87,7 @@ public:
     /// @brief Create a tokenizer
     /// @param src string containing the code to tokenize
     Tokenizer(const std::string &src);
-    
+
     /// @brief start tokenization
     std::vector<Token> tokenize();
 };

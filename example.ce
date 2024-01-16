@@ -1,15 +1,19 @@
 var x : int
-var y : int = 2
+var flag = false
+var c : char = itoc(1)
 
-// ilu
-
-if (y-1) {
-    x = (64 / 2 + 2) * 2 + 1
-    println(x, 2)
+func calc() : int {
+    return (64 / 2 + 2) * 2
 }
-elif (y) {
-    println(42)
-}/*
-else {
-    println(21)
+
+func main() : int {
+    if (!flag) {
+        x = calc()
+        println(x+ctoi(c))
+    }
+    else {
+        println(42)
+    }
+    
+    return 0
 }

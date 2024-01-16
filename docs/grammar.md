@@ -49,28 +49,47 @@ $$
     [\text{Expr}] &\to 
     \begin{cases}
         \text{Term} \\
-        \text{BinExpr}
+        \text{BinExpr} \\
+        \text{BooleanExpr}
     \end{cases} \\
 
     [\text{BinaryExpr}] &\to
     \begin{cases}
-        [\text{Expr}] * [\text{Expr}] & {prec} = 1\\
-        [\text{Expr}] / [\text{Expr}] & {prec} = 1\\
-        [\text{Expr}] + [\text{Expr}] & {prec} = 0\\
-        [\text{Expr}] - [\text{Expr}] & {prec} = 0\\
+        [\text{Expr}] \space * \space [\text{Expr}] & {prec} = 1\\
+        [\text{Expr}] \space / \space [\text{Expr}] & {prec} = 1\\
+        [\text{Expr}] \space + \space [\text{Expr}] & {prec} = 0\\
+        [\text{Expr}] \space - \space [\text{Expr}] & {prec} = 0\\
+        \\
+        ! \space [\text{Expr}]         & {prec} = 1\\
+        [\text{Expr}]\space \&\& \space[\text{Expr}] & {prec} = 1\\
+        [\text{Expr}]\space || \space [\text{Expr}] & {prec} = 1\\
+        [\text{Expr}] == [\text{Expr}] & {prec} = 0\\
+        [\text{Expr}]\space != [\text{Expr}] & {prec} = 0\\
+        [\text{Expr}] > [\text{Expr}]  & {prec} = 0\\
+        [\text{Expr}] < [\text{Expr}]  & {prec} = 0\\
+        [\text{Expr}] >= [\text{Expr}] & {prec} = 0\\
+        [\text{Expr}] <= [\text{Expr}] & {prec} = 0\\
     \end{cases} \\
 
     [\text{Term}] &\to 
     \begin{cases}
         \text{identifier} \\
         [\text{FunctionCall}] \\
+        [\text{boolean\_literal}] \\
         \text{integer\_literal} \\
         \text{char\_literal} \\
         ([\text{Expr}])
     \end{cases} \\
 
+    [\text{boolean\_literal}] &\to
+    \begin{cases}
+        true \\
+        false
+    \end{cases} \\
+
     [\text{Type}] &\to
     \begin{cases}
+        bool \\
         int \\
         char \\
     \end{cases} \\

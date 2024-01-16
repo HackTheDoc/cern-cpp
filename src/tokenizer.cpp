@@ -12,10 +12,14 @@ std::string to_string(const TokenType type)
         return "func";
     case TokenType::IDENTIFIER:
         return "identifier";
+    case TokenType::TYPE_BOOL:
+        return "bool";
     case TokenType::TYPE_INT:
         return "int";
     case TokenType::TYPE_CHAR:
         return "char";
+    case TokenType::BOOLEAN_LITEARL:
+        return "boolean literal";
     case TokenType::INTEGER_LITERAL:
         return "integer literal";
     case TokenType::CHAR_LITERAL:
@@ -48,23 +52,77 @@ std::string to_string(const TokenType type)
         return "*";
     case TokenType::SLASH:
         return "/";
+    case TokenType::IS_EQUAL:
+        return "==";
+    case TokenType::IS_NOT_EQUAL:
+        return "!=";
+    case TokenType::GREATER_OR_EQUAL:
+        return ">=";
+    case TokenType::GREATER:
+        return ">";
+    case TokenType::LOWER_OR_EQUAL:
+        return "<=";
+    case TokenType::LOWER:
+        return "<";
+    case TokenType::AND:
+        return "&&";
+    case TokenType::OR:
+        return "||";
+    case TokenType::NOT:
+        return "!";
     default:
         return "";
     }
 }
 
-std::optional<int> bin_prec(TokenType type)
+std::optional<int> op_prec(TokenType type)
 {
     switch (type)
     {
+    case TokenType::IS_EQUAL:
+    case TokenType::IS_NOT_EQUAL:
+    case TokenType::GREATER_OR_EQUAL:
+    case TokenType::GREATER:
+    case TokenType::LOWER_OR_EQUAL:
+    case TokenType::LOWER:
+
     case TokenType::PLUS:
     case TokenType::MINUS:
         return 0;
+
+    case TokenType::NOT:
+    case TokenType::AND:
+    case TokenType::OR:
+
     case TokenType::STAR:
     case TokenType::SLASH:
         return 1;
     default:
         return {};
+    }
+}
+
+bool is_operator(TokenType type)
+{
+    switch (type)
+    {
+    case TokenType::IS_EQUAL:
+    case TokenType::IS_NOT_EQUAL:
+    case TokenType::GREATER_OR_EQUAL:
+    case TokenType::GREATER:
+    case TokenType::LOWER_OR_EQUAL:
+    case TokenType::LOWER:
+    case TokenType::NOT:
+    case TokenType::AND:
+    case TokenType::OR:
+
+    case TokenType::STAR:
+    case TokenType::SLASH:
+    case TokenType::PLUS:
+    case TokenType::MINUS:
+        return true;
+    default:
+        return false;
     }
 }
 
@@ -125,12 +183,18 @@ std::vector<Token> Tokenizer::tokenize()
             }
 
             // TYPES
-            if (buf == "int")
+            if (buf == "bool")
+                tokens.push_back({.type = TokenType::TYPE_BOOL, .line = line_count});
+            else if (buf == "int")
                 tokens.push_back({.type = TokenType::TYPE_INT, .line = line_count});
             else if (buf == "char")
                 tokens.push_back({.type = TokenType::TYPE_CHAR, .line = line_count});
 
             // KEYWORDS
+            else if (buf == "true")
+                tokens.push_back({.type = TokenType::BOOLEAN_LITEARL, .line = line_count, .val = "true"});
+            else if (buf == "false")
+                tokens.push_back({.type = TokenType::BOOLEAN_LITEARL, .line = line_count, .val = "false"});
             else if (buf == "var")
                 tokens.push_back({.type = TokenType::VAR, .line = line_count});
             else if (buf == "func")
@@ -163,7 +227,14 @@ std::vector<Token> Tokenizer::tokenize()
         else if (peek().value() == '=')
         {
             consume();
-            tokens.push_back({.type = TokenType::EQUAL, .line = line_count});
+
+            if (peek().has_value() && peek().value() == '=')
+            {
+                consume();
+                tokens.push_back({.type = TokenType::IS_EQUAL, .line = line_count});
+            }
+            else
+                tokens.push_back({.type = TokenType::EQUAL, .line = line_count});
         }
         else if (peek().value() == ':')
         {
@@ -214,6 +285,65 @@ std::vector<Token> Tokenizer::tokenize()
         {
             consume();
             tokens.push_back({.type = TokenType::SLASH, .line = line_count});
+        }
+        else if (peek().value() == '!')
+        {
+            consume();
+
+            if (peek().has_value() && peek().value() == '=')
+            {
+                consume();
+                tokens.push_back({.type = TokenType::IS_NOT_EQUAL, .line = line_count});
+            }
+            else
+                tokens.push_back({.type = TokenType::NOT, .line = line_count});
+        }
+        else if (peek().value() == '&')
+        {
+            consume();
+
+            if (!peek().has_value() || peek().value() != '&')
+            {
+                std::cerr << "expected `&` on line " << line_count << std::endl;
+                exit(EXIT_FAILURE);
+            }
+            tokens.push_back({.type = TokenType::AND, .line = line_count});
+        }
+        else if (peek().value() == '|')
+        {
+            consume();
+
+            if (!peek().has_value() || peek().value() != '|')
+            {
+                std::cerr << "expected `|` on line " << line_count << std::endl;
+                exit(EXIT_FAILURE);
+            }
+
+            tokens.push_back({.type = TokenType::OR, .line = line_count});
+        }
+        else if (peek().value() == '>')
+        {
+            consume();
+
+            if (peek().has_value() && peek().value() == '=')
+            {
+                consume();
+                tokens.push_back({.type = TokenType::GREATER_OR_EQUAL, .line = line_count});
+            }
+            else
+                tokens.push_back({.type = TokenType::GREATER, .line = line_count});
+        }
+        else if (peek().value() == '<')
+        {
+            consume();
+
+            if (peek().has_value() && peek().value() == '=')
+            {
+                consume();
+                tokens.push_back({.type = TokenType::LOWER_OR_EQUAL, .line = line_count});
+            }
+            else
+                tokens.push_back({.type = TokenType::LOWER, .line = line_count});
         }
         else if (peek().value() == '\'')
         {

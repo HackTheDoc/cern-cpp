@@ -12,16 +12,48 @@ const std::unordered_map<std::string, VarType> Parser::buildin_func_type = {
     {"ctoi", VarType::INT},
 };
 
-bool Parser::is_buildin_func(const std::string& func)
+bool Parser::is_buildin_func(const std::string &func)
 {
     return buildin_func_type.count(func);
 }
 
 std::unordered_map<std::string, VarType> Parser::identifiers{};
 
-bool Parser::is_var(const std::string& var)
+bool Parser::is_var(const std::string &var)
 {
     return identifiers.count(var);
+}
+
+std::optional<VarType> Parser::get_return_type(VarType t1, TokenType op, VarType t2)
+{
+    switch (op) {
+    case TokenType::AND:
+    case TokenType::OR:
+        if (t1 == VarType::BOOL && t2 == VarType::BOOL)
+            return VarType::BOOL;
+        return {};
+
+    case TokenType::PLUS:
+    case TokenType::MINUS:
+        return VarType::INT;
+    
+    case TokenType::STAR:
+    case TokenType::SLASH:
+        if (t1 == VarType::INT && t2 == VarType::INT)
+            return VarType::INT;
+        return {};
+
+    case TokenType::GREATER_OR_EQUAL:
+    case TokenType::GREATER:
+    case TokenType::LOWER_OR_EQUAL:
+    case TokenType::LOWER:
+    case TokenType::IS_EQUAL:
+    case TokenType::IS_NOT_EQUAL:
+        return VarType::BOOL;
+
+    default:
+        return {};
+    }
 }
 
 std::string to_string(VarType t)
@@ -30,6 +62,8 @@ std::string to_string(VarType t)
     {
     case VarType::VOID:
         return "void";
+    case VarType::BOOL:
+        return "bool";
     case VarType::INT:
         return "int";
     case VarType::CHAR:
@@ -43,6 +77,9 @@ VarType to_variable_type(TokenType t)
 {
     switch (t)
     {
+    case TokenType::TYPE_BOOL:
+    case TokenType::BOOLEAN_LITEARL:
+        return VarType::BOOL;
     case TokenType::TYPE_INT:
     case TokenType::INTEGER_LITERAL:
         return VarType::INT;
@@ -585,6 +622,28 @@ std::optional<Node::IfPred *> Parser::parse_if_pred()
 
 std::optional<Node::Expr *> Parser::parse_expr(int min_prec)
 {
+    // ! ?
+    if (peek_type(TokenType::NOT))
+    {
+        consume();
+        
+        auto nexpr = allocator.alloc<Node::BinExprNot>();
+
+        if (const auto e = parse_expr())
+        {
+            if (e.value()->type != VarType::BOOL)
+                exit_with(to_string(VarType::BOOL), "expression must be of type");
+            nexpr->expr = e.value();
+        }
+        else exit_with("boolean expression");
+
+        auto bexpr = allocator.emplace<Node::BinExpr>(nexpr);
+
+        auto expr = allocator.emplace<Node::Expr>(bexpr);
+        expr->type = VarType::BOOL;
+        return expr;
+    }
+
     std::optional<Node::Term *> lterm = parse_term();
     if (!lterm.has_value())
         return {};
@@ -592,6 +651,9 @@ std::optional<Node::Expr *> Parser::parse_expr(int min_prec)
     auto expr = allocator.emplace<Node::Expr>(lterm.value());
     expr->type = lterm.value()->type;
 
+    /// TODO:
+    /// check compatibility between left and right expressions
+    /// handle type compatibility and conversion
     while (true)
     {
         std::optional<Token> curr_tok = peek();
@@ -599,7 +661,7 @@ std::optional<Node::Expr *> Parser::parse_expr(int min_prec)
 
         if (curr_tok.has_value())
         {
-            prec = bin_prec(curr_tok.value().type);
+            prec = op_prec(curr_tok.value().type);
             if (!prec.has_value() || prec.value() < min_prec)
             {
                 break;
@@ -613,16 +675,18 @@ std::optional<Node::Expr *> Parser::parse_expr(int min_prec)
         int next_min_prec = prec.value() + 1;
         auto expr_rside = parse_expr(next_min_prec);
         if (!expr_rside.has_value())
-            exit_with("expression");
-
-        if (expr->type != VarType::VOID &&
-            expr_rside.value()->type != VarType::VOID &&
-            expr->type != expr_rside.value()->type)
         {
+            exit_with("expression");
+        }
+
+        auto return_type = get_return_type(expr->type, op.type, expr_rside.value()->type);
+
+        if (!return_type.has_value())
             exit_with(
                 to_string(expr->type) + " " + to_string(op.type) + " " + to_string(expr_rside.value()->type),
                 "wrong operation :");
-        }
+        
+        expr->type = return_type.value();
 
         auto bin_expr = allocator.emplace<Node::BinExpr>();
         auto expr_lside = allocator.emplace<Node::Expr>(expr->var);
@@ -648,6 +712,46 @@ std::optional<Node::Expr *> Parser::parse_expr(int min_prec)
             /// TODO: make sure you cannot divide strings
             auto div = allocator.emplace<Node::BinExprDiv>(expr_lside, expr_rside.value());
             bin_expr->var = div;
+        }
+        else if (op.type == TokenType::IS_EQUAL)
+        {
+            auto iseq = allocator.emplace<Node::BinExprIsEqual>(expr_lside, expr_rside.value());
+            bin_expr->var = iseq;
+        }
+        else if (op.type == TokenType::IS_NOT_EQUAL)
+        {
+            auto iseq = allocator.emplace<Node::BinExprIsNotEqual>(expr_lside, expr_rside.value());
+            bin_expr->var = iseq;
+        }
+        else if (op.type == TokenType::GREATER_OR_EQUAL)
+        {
+            auto iseq = allocator.emplace<Node::BinExprGreaterOrEqual>(expr_lside, expr_rside.value());
+            bin_expr->var = iseq;
+        }
+        else if (op.type == TokenType::GREATER)
+        {
+            auto iseq = allocator.emplace<Node::BinExprGreater>(expr_lside, expr_rside.value());
+            bin_expr->var = iseq;
+        }
+        else if (op.type == TokenType::LOWER_OR_EQUAL)
+        {
+            auto iseq = allocator.emplace<Node::BinExprLowerOrEqual>(expr_lside, expr_rside.value());
+            bin_expr->var = iseq;
+        }
+        else if (op.type == TokenType::LOWER)
+        {
+            auto iseq = allocator.emplace<Node::BinExprLower>(expr_lside, expr_rside.value());
+            bin_expr->var = iseq;
+        }
+        else if (op.type == TokenType::AND)
+        {
+            auto iseq = allocator.emplace<Node::BinExprAnd>(expr_lside, expr_rside.value());
+            bin_expr->var = iseq;
+        }
+        else if (op.type == TokenType::OR)
+        {
+            auto iseq = allocator.emplace<Node::BinExprOr>(expr_lside, expr_rside.value());
+            bin_expr->var = iseq;
         }
         else
             assert(false); // unreachable
@@ -706,6 +810,14 @@ std::optional<Node::Term *> Parser::parse_term()
     }
 
     // LITERALS
+    if (auto bool_lit = try_consume(TokenType::BOOLEAN_LITEARL))
+    {
+        auto term_bool_lit = allocator.emplace<Node::TermBooleanLiteral>(bool_lit.value());
+        auto term = allocator.emplace<Node::Term>(term_bool_lit);
+        term->type = VarType::BOOL;
+        return term;
+    }
+
     if (auto int_lit = try_consume(TokenType::INTEGER_LITERAL))
     {
         auto term_int_lit = allocator.emplace<Node::TermIntegerLiteral>(int_lit.value());
@@ -742,6 +854,9 @@ std::optional<Node::Term *> Parser::parse_term()
 
 std::optional<VarType> Parser::parse_type()
 {
+    if (auto t = try_consume(TokenType::TYPE_BOOL))
+        return VarType::BOOL;
+
     if (auto t = try_consume(TokenType::TYPE_INT))
         return VarType::INT;
 

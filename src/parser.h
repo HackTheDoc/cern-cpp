@@ -10,6 +10,7 @@
 enum VarType
 {
     VOID,
+    BOOL,
     INT,
     CHAR
 };
@@ -28,6 +29,11 @@ namespace Node
         Token ident;
         std::vector<Expr *> args;
         VarType type{VarType::VOID};
+    };
+
+    struct TermBooleanLiteral
+    {
+        Token bool_lit;
     };
 
     struct TermIntegerLiteral
@@ -53,6 +59,7 @@ namespace Node
     struct Term
     {
         std::variant<
+            TermBooleanLiteral*,
             TermIntegerLiteral *,
             TermCharLiteral *,
             TermIdentifier *,
@@ -86,17 +93,85 @@ namespace Node
         Expr *rside;
     };
 
+    struct BinExprNot
+    {
+        Expr* expr;
+    };
+
+    struct BinExprAnd
+    {
+        Expr *lside;
+        Expr *rside;
+    };
+
+    struct BinExprOr
+    {
+        Expr *lside;
+        Expr *rside;
+    };
+
+    struct BinExprIsEqual
+    {
+        Expr *lside;
+        Expr *rside;
+    };
+
+    struct BinExprIsNotEqual
+    {
+        Expr *lside;
+        Expr *rside;
+    };
+
+    struct BinExprGreaterOrEqual
+    {
+        Expr *lside;
+        Expr *rside;
+    };
+
+    struct BinExprGreater
+    {
+        Expr *lside;
+        Expr *rside;
+    };
+
+    struct BinExprLowerOrEqual
+    {
+        Expr *lside;
+        Expr *rside;
+    };
+
+    struct BinExprLower
+    {
+        Expr *lside;
+        Expr *rside;
+    };
+
     struct BinExpr
     {
-        std::variant<BinExprAdd *, BinExprSub *, BinExprMulti *, BinExprDiv *> var;
+        std::variant<
+            BinExprAdd *, 
+            BinExprSub *, 
+            BinExprMulti *, 
+            BinExprDiv *,
+
+            BinExprNot*,
+            BinExprAnd*,
+            BinExprOr*,
+            BinExprIsEqual*,
+            BinExprIsNotEqual*,
+            BinExprGreaterOrEqual*,
+            BinExprGreater*,
+            BinExprLowerOrEqual*,
+            BinExprLower*
+        > var;
     };
 
     struct Expr
     {
         std::variant<
             Term *,
-            BinExpr *>
-            var;
+            BinExpr *
+        > var;
         VarType type{VarType::VOID};
     };
 
@@ -218,6 +293,8 @@ private:
 
     // check if an identifier exist or not
     static bool is_var(const std::string& var);
+
+    static std::optional<VarType> get_return_type(VarType t1, TokenType op, VarType t2);
 
     // parse the type associated with an identifier
     std::optional<VarType> var_type(const std::string &ident);

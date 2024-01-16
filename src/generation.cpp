@@ -277,6 +277,51 @@ namespace gen
             {
                 result = expr(div->lside) + " / " + expr(div->rside);
             }
+
+            void operator()(const Node::BinExprNot *e)
+            {
+                result = "!" + expr(e->expr);
+            }
+
+            void operator()(const Node::BinExprAnd *e)
+            {
+                result = expr(e->lside) + " && " + expr(e->rside);
+            }
+
+            void operator()(const Node::BinExprOr *e)
+            {
+                result = expr(e->lside) + " || " + expr(e->rside);
+            }
+
+            void operator()(const Node::BinExprIsEqual *e)
+            {
+                result = expr(e->lside) + " == " + expr(e->rside);
+            }
+
+            void operator()(const Node::BinExprIsNotEqual *e)
+            {
+                result = expr(e->lside) + " != " + expr(e->rside);
+            }
+
+            void operator()(const Node::BinExprGreaterOrEqual *e)
+            {
+                result = expr(e->lside) + " >= " + expr(e->rside);
+            }
+
+            void operator()(const Node::BinExprGreater *e)
+            {
+                result = expr(e->lside) + " > " + expr(e->rside);
+            }
+
+            void operator()(const Node::BinExprLowerOrEqual *e)
+            {
+                result = expr(e->lside) + " <= " + expr(e->rside);
+            }
+
+            void operator()(const Node::BinExprLower *e)
+            {
+                result = expr(e->lside) + " < " + expr(e->rside);
+            }
         };
 
         BinExprVisitor visitor;
@@ -290,6 +335,11 @@ namespace gen
         struct TermVisitor
         {
             std::string result;
+
+            void operator()(const Node::TermBooleanLiteral *term_bool_lit)
+            {
+                result = term_bool_lit->bool_lit.val.value();
+            }
 
             void operator()(const Node::TermIntegerLiteral *term_int_lit)
             {
@@ -314,9 +364,9 @@ namespace gen
                     return;
                 }
 
-                result = indentation;
+                result = " ";
                 result += fcall->ident.val.value();
-                result += " (";
+                result += "(";
 
                 if (!fcall->args.empty())
                 {
@@ -328,7 +378,7 @@ namespace gen
                     }
                 }
 
-                result += ");\n";
+                result += ")";
             }
 
             void operator()(const Node::TermParen *term_paren)
