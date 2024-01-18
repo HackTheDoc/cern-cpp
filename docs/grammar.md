@@ -18,7 +18,8 @@ $$
         \text{identifier} = [\text{Expr}] \\
         [\text{FunctionCall}] \\
         [\text{Scope}] \\
-        if\space([\text{Expr}])\space[\text{Scope}]\space[\text{IfPred} \\
+        if\space([\text{Expr}])\space[\text{Scope}]\space[\text{IfPred}]\\
+        while\space([\text{Expr}])\space[\text{Scope}] \\
         \text{return [Expr]} \\
     \end{cases} \\
 
@@ -50,7 +51,9 @@ $$
     \begin{cases}
         \text{Term} \\
         \text{BinExpr} \\
-        \text{BooleanExpr}
+        ! \space [\text{Expr}] \\
+        [\text{Expr}]++ \\
+        [\text{Expr}]-- \\
     \end{cases} \\
 
     [\text{BinaryExpr}] &\to
@@ -60,7 +63,6 @@ $$
         [\text{Expr}] \space + \space [\text{Expr}] & {prec} = 0\\
         [\text{Expr}] \space - \space [\text{Expr}] & {prec} = 0\\
         \\
-        ! \space [\text{Expr}]         & {prec} = 1\\
         [\text{Expr}]\space \&\& \space[\text{Expr}] & {prec} = 1\\
         [\text{Expr}]\space || \space [\text{Expr}] & {prec} = 1\\
         [\text{Expr}] == [\text{Expr}] & {prec} = 0\\

@@ -2,8 +2,7 @@
 
 #include "parser.h"
 
-namespace gen
-{
+namespace gen {
     void begin_scope();
 
     void end_scope();

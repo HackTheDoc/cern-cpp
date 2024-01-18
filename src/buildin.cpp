@@ -52,7 +52,7 @@ namespace {
         if (args.size() > 1)
             exit_with("too many arguments in function call");
 
-        return "(char)" + gen::expr(args[0]) + "+ '0'";
+        return "(char)(" + gen::expr(args[0]) + "+ '0')";
     }
 
     std::string ctoi_call(const std::vector<Node::Expr*>& args)
@@ -64,7 +64,7 @@ namespace {
         if (args.size() > 1)
             exit_with("too many arguments in function call");
 
-        return gen::expr(args[0]) + " - '0'";
+        return "("+ gen::expr(args[0]) + " - '0')";
     }
 }
 

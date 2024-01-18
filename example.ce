@@ -3,7 +3,7 @@ var flag = false
 var c : char = itoc(1)
 
 func calc() : int {
-    return (64 / 2 + 2) * 2
+    println
 }
 
 func main() : int {

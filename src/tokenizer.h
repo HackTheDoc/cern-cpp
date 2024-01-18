@@ -5,8 +5,7 @@
 #include <vector>
 #include <string>
 
-enum TokenType
-{
+enum TokenType {
     RETURN,
     VAR,
     FUNC,
@@ -20,6 +19,7 @@ enum TokenType
     INTEGER_LITERAL,
     CHAR_LITERAL,
 
+    WHILE,
     IF,
     ELIF,
     ELSE,
@@ -35,6 +35,9 @@ enum TokenType
     MINUS,
     STAR,
     SLASH,
+
+    INCREMENTATOR,
+    DECREMENTATOR,
 
     IS_EQUAL,
     IS_NOT_EQUAL,
@@ -57,18 +60,14 @@ std::string to_string(const TokenType type);
 /// @return an optional value of the operator prec (return nothing if the token is not an operator)
 std::optional<int> op_prec(TokenType type);
 
-bool is_operator(TokenType type);
-
 /// @brief a token is represented by its type, the line it is on and an optional value
-struct Token
-{
+struct Token {
     TokenType type;
     int line;
     std::optional<std::string> val{};
 };
 
-class Tokenizer
-{
+class Tokenizer {
 private:
     /// @brief src string containing the code to tokenize
     const std::string _src;
@@ -86,7 +85,7 @@ private:
 public:
     /// @brief Create a tokenizer
     /// @param src string containing the code to tokenize
-    Tokenizer(const std::string &src);
+    Tokenizer(const std::string& src);
 
     /// @brief start tokenization
     std::vector<Token> tokenize();
