@@ -61,6 +61,8 @@ std::string to_string(VarType t) {
         return "int";
     case VarType::CHAR:
         return "char";
+    case VarType::STRING:
+        return "string";
     default:
         return "auto";
     }
@@ -77,6 +79,9 @@ VarType to_variable_type(TokenType t) {
     case TokenType::TYPE_CHAR:
     case TokenType::CHAR_LITERAL:
         return VarType::CHAR;
+    case TokenType::TYPE_STRING:
+    case TokenType::STRING_LITERAL:
+        return VarType::STRING;
     default:
         return VarType::VOID;
     }
@@ -103,6 +108,7 @@ bool Parser::peek_type(TokenType type, int offset) const {
 }
 
 Token Parser::consume() {
+    //std::cout << to_string(tokens[index].type) << std::endl;
     return tokens[index++];
 }
 
@@ -312,7 +318,7 @@ std::optional<Node::ScopeStmt*> Parser::parse_scope_stmt() {
     if (!peek().has_value())
         return {};
 
-    
+
     // ? ++
     if (peek_type(TokenType::INCREMENTATOR, 1)) {
         auto incr = allocator.alloc<Node::VarIncr>();
@@ -822,6 +828,13 @@ std::optional<Node::Term*> Parser::parse_term() {
         return term;
     }
 
+    if (auto string_lit = try_consume(TokenType::STRING_LITERAL)) {
+        auto term_string_lit = allocator.emplace<Node::TermStringLiteral>(string_lit.value());
+        auto term = allocator.emplace<Node::Term>(term_string_lit);
+        term->type = VarType::STRING;
+        return term;
+    }
+
     // IN PARENTHESIS
     if (auto open_paren = try_consume(TokenType::LEFT_PARENTHESIS)) {
         auto expr = parse_expr();
@@ -842,7 +855,7 @@ std::optional<Node::Term*> Parser::parse_term() {
 std::optional<Node::TermIdentifier*> Parser::parse_identifier() {
     if (auto idtoken = try_consume(TokenType::IDENTIFIER)) {
         auto ident = allocator.emplace<Node::TermIdentifier>(idtoken.value());
-    
+
         if (const auto t = var_type(idtoken.value().val.value())) {
             ident->type = t.value();
         }
@@ -864,6 +877,9 @@ std::optional<VarType> Parser::parse_type() {
 
     if (auto t = try_consume(TokenType::TYPE_CHAR))
         return VarType::CHAR;
+
+    if (auto t = try_consume(TokenType::TYPE_STRING))
+        return VarType::STRING;
 
     return {};
 }

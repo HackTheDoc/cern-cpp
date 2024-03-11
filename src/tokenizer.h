@@ -14,10 +14,12 @@ enum TokenType {
     TYPE_BOOL,
     TYPE_INT,
     TYPE_CHAR,
+    TYPE_STRING,
 
     BOOLEAN_LITEARL,
     INTEGER_LITERAL,
     CHAR_LITERAL,
+    STRING_LITERAL,
 
     WHILE,
     IF,

@@ -48,7 +48,14 @@ namespace gen {
     }
 
     std::string prog(const Node::Prog p) {
-        output << "#include <iostream>\n\n";
+        output << "#include <iostream>" << std::endl;
+        output << "#include <string>" << std::endl;
+
+        output << std::endl;
+
+        output << "using namespace std;" << std::endl;
+
+        output << std::endl;
 
         for (const Node::ProgStmt* s : p.stmts)
             prog_stmt(s);
@@ -325,6 +332,10 @@ namespace gen {
 
             void operator()(const Node::TermCharLiteral* term_char_lit) {
                 result = "'" + term_char_lit->char_lit.val.value() + "'";
+            }
+
+            void operator()(const Node::TermStringLiteral* term_string_lit) {
+                result = "\"" + term_string_lit->string_lit.val.value() + "\"";
             }
 
             void operator()(const Node::TermIdentifier* term_ident) {

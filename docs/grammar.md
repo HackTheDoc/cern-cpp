@@ -79,7 +79,8 @@ $$
         [\text{FunctionCall}] \\
         [\text{boolean\_literal}] \\
         \text{integer\_literal} \\
-        \text{char\_literal} \\
+        '\text{char\_literal}' \\
+        "[\text{string\_literal}]" \\
         ([\text{Expr}])
     \end{cases} \\
 
@@ -89,11 +90,14 @@ $$
         false
     \end{cases} \\
 
+    [\text{string\_literal}] &\to [\text{char\_literal}]^* \\
+
     [\text{Type}] &\to
     \begin{cases}
         bool \\
         int \\
         char \\
+        string \\
     \end{cases} \\
 
 \end{aligned}

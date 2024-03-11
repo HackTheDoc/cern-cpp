@@ -11,7 +11,8 @@ enum VarType {
     VOID,
     BOOL,
     INT,
-    CHAR
+    CHAR,
+    STRING
 };
 
 std::string to_string(VarType t);
@@ -22,45 +23,43 @@ namespace Node {
 
     struct Scope;
 
-    struct FuncCall
-    {
+    struct FuncCall {
         Token ident;
         std::vector<Expr*> args;
         VarType type{ VarType::VOID };
     };
 
-    struct TermBooleanLiteral
-    {
+    struct TermBooleanLiteral {
         Token bool_lit;
     };
 
-    struct TermIntegerLiteral
-    {
+    struct TermIntegerLiteral {
         Token int_lit;
     };
 
-    struct TermCharLiteral
-    {
+    struct TermCharLiteral {
         Token char_lit;
     };
 
-    struct TermIdentifier
-    {
+    struct TermStringLiteral {
+        Token string_lit;
+    };
+
+    struct TermIdentifier {
         Token ident;
         VarType type{VarType::VOID};
     };
 
-    struct TermParen
-    {
+    struct TermParen {
         Expr* expr;
     };
 
-    struct Term
-    {
+    struct Term {
         std::variant<
             TermBooleanLiteral*,
             TermIntegerLiteral*,
             TermCharLiteral*,
+            TermStringLiteral*,
             TermIdentifier*,
             FuncCall*,
             TermParen*>
@@ -68,80 +67,67 @@ namespace Node {
         VarType type{ VarType::VOID };
     };
 
-    struct BinExprAdd
-    {
+    struct BinExprAdd {
         Expr* lside;
         Expr* rside;
     };
 
-    struct BinExprSub
-    {
+    struct BinExprSub {
         Expr* lside;
         Expr* rside;
     };
 
-    struct BinExprMulti
-    {
+    struct BinExprMulti {
         Expr* lside;
         Expr* rside;
     };
 
-    struct BinExprDiv
-    {
+    struct BinExprDiv {
         Expr* lside;
         Expr* rside;
     };
 
-    struct BinExprAnd
-    {
+    struct BinExprAnd {
         Expr* lside;
         Expr* rside;
     };
 
-    struct BinExprOr
-    {
+    struct BinExprOr {
         Expr* lside;
         Expr* rside;
     };
 
-    struct BinExprIsEqual
-    {
+    struct BinExprIsEqual {
         Expr* lside;
         Expr* rside;
     };
 
-    struct BinExprIsNotEqual
-    {
+    struct BinExprIsNotEqual {
         Expr* lside;
         Expr* rside;
     };
 
-    struct BinExprGreaterOrEqual
-    {
+    struct BinExprGreaterOrEqual {
         Expr* lside;
         Expr* rside;
     };
 
-    struct BinExprGreater
-    {
+    struct BinExprGreater {
         Expr* lside;
         Expr* rside;
     };
 
-    struct BinExprLowerOrEqual
-    {
+    struct BinExprLowerOrEqual {
         Expr* lside;
         Expr* rside;
     };
 
-    struct BinExprLower
-    {
+    struct BinExprLower {
         Expr* lside;
         Expr* rside;
     };
 
-    struct BinExpr
-    {
+    struct BinExpr {
         std::variant<
             BinExprAdd*,
             BinExprSub*,
@@ -159,23 +145,19 @@ namespace Node {
         > var;
     };
 
-    struct ExprNot
-    {
+    struct ExprNot {
         Expr* expr;
     };
 
-    struct VarIncr
-    {
+    struct VarIncr {
         TermIdentifier* ident;
     };
 
-    struct VarDecr
-    {
+    struct VarDecr {
         TermIdentifier* ident;
     };
 
-    struct Expr
-    {
+    struct Expr {
         std::variant<
             Term*,
             BinExpr*,
@@ -189,65 +171,55 @@ namespace Node {
     struct ScopeStmt;
 
     // var ident = value
-    struct StmtImplicitVar
-    {
+    struct StmtImplicitVar {
         Token identifier;
         Expr* expr;
     };
 
     // var ident : type
-    struct StmtExplicitVar
-    {
+    struct StmtExplicitVar {
         Token ident;
         VarType type;
     };
 
     // func indent() { ? }
-    struct FuncDeclaration
-    {
+    struct FuncDeclaration {
         Token ident;
         Scope* scope;
         VarType type{ VarType::VOID };
     };
 
-    struct StmtVarAssign
-    {
+    struct StmtVarAssign {
         Token ident;
         Expr* expr;
     };
 
-    struct StmtReturn
-    {
+    struct StmtReturn {
         Expr* expr;
     };
 
-    struct StmtWhile
-    {
+    struct StmtWhile {
         Expr* expr;
         Scope* scope;
     };
 
     struct IfPred;
 
-    struct IfPredElif
-    {
+    struct IfPredElif {
         Expr* expr;
         Scope* scope;
         std::optional<IfPred*> pred;
     };
 
-    struct IfPredElse
-    {
+    struct IfPredElse {
         Scope* scope;
     };
 
-    struct IfPred
-    {
+    struct IfPred {
         std::variant<IfPredElif*, IfPredElse*> var;
     };
 
-    struct StmtIf
-    {
+    struct StmtIf {
         Expr* expr;
         Scope* scope;
         std::optional<IfPred*> pred;
@@ -269,14 +241,12 @@ namespace Node {
         std::optional<VarType> type{};
     };
 
-    struct Scope
-    {
+    struct Scope {
         std::vector<ScopeStmt*> stmts;
         VarType type{ VarType::VOID };
     };
 
-    struct ProgStmt
-    {
+    struct ProgStmt {
         std::variant<
             FuncDeclaration*,
             StmtImplicitVar*,
@@ -284,8 +254,7 @@ namespace Node {
         > var;
     };
 
-    struct Prog
-    {
+    struct Prog {
         std::vector<ProgStmt*> stmts;
     };
 }

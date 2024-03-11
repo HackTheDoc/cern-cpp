@@ -16,12 +16,16 @@ std::string to_string(const TokenType type) {
         return "int";
     case TokenType::TYPE_CHAR:
         return "char";
+    case TokenType::TYPE_STRING:
+        return "string";
     case TokenType::BOOLEAN_LITEARL:
         return "boolean literal";
     case TokenType::INTEGER_LITERAL:
         return "integer literal";
     case TokenType::CHAR_LITERAL:
         return "char literal";
+    case TokenType::STRING_LITERAL:
+        return "string literal";
     case TokenType::WHILE:
         return "while";
     case TokenType::IF:
@@ -137,6 +141,8 @@ std::vector<Token> Tokenizer::tokenize() {
             while (peek().has_value()) {
                 if (peek().value() == '*' && peek(1).has_value() && peek(1).value() == '/')
                     break;
+                if (peek().value() == '\n')
+                    line_count++;
                 consume();
             }
 
@@ -159,6 +165,8 @@ std::vector<Token> Tokenizer::tokenize() {
                 tokens.push_back({ .type = TokenType::TYPE_INT, .line = line_count });
             else if (buf == "char")
                 tokens.push_back({ .type = TokenType::TYPE_CHAR, .line = line_count });
+            else if (buf == "string")
+                tokens.push_back({ .type = TokenType::TYPE_STRING, .line = line_count });
 
             // KEYWORDS
             else if (buf == "true")
@@ -324,6 +332,24 @@ std::vector<Token> Tokenizer::tokenize() {
                 std::cerr << "[Error] expected a valid char on line " << line_count << std::endl;
                 exit(EXIT_FAILURE);
             }
+        }
+        else if (peek().value() == '"') {
+            consume(); // "
+
+            while (peek().has_value() &&
+                (std::isalnum(peek().value()) || peek().value() != '"')) {
+                buf.push_back(consume());
+            }
+
+            tokens.push_back({ .type = TokenType::STRING_LITERAL, .line = line_count, .val = buf });
+            buf.clear();
+            if (!peek().has_value() || peek().value() != '"') {
+                std::cerr << "[Error] expected `\"` on line " << line_count << std::endl;
+                exit(EXIT_FAILURE);
+            }
+
+            consume(); // "
+            line_count++;
         }
         else if (peek().value() == '\n') {
             line_count++;
